@@ -223,7 +223,7 @@ public:
         // Barrack interiors (proximity-gated)
         interiors.render(phongShader, I, cube, cylinder, sphere, plane, camera,
             texWoodPlank, texBrickDark, texStoneFloor, texPlasterWhite,
-            texStrawBedding, texBlackMetal, texTileGrey);
+            texStrawBedding, texBlackMetal, texTileGrey, texRoofTile);
     }
 
     // =========================================================

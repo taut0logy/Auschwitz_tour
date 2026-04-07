@@ -19,9 +19,23 @@
 // EntranceGate: Gatehouse building, Bezier arch, gate leaves,
 // text billboard, flagpoles, sentry boxes
 // Per Sections 2.3, 3.6, 7.1
+//
+// REPOSITIONED: Moved from X=135 to X=+155 to create proper spacing
+// from barracks grid (easternmost column at X=+112 with 40m blocks)
 // ================================================================
 class EntranceGate {
 public:
+    // Main gate position - moved east to create coherent camp layout
+    static constexpr float GATE_X = 155.0f;  // Was 135.0f
+    static constexpr float GATE_Z = 0.0f;
+    
+    // Building dimensions
+    static constexpr float BUILDING_WIDTH_Z = 18.0f;  // Total Z span
+    static constexpr float BUILDING_DEPTH_X = 12.0f;  // X depth
+    static constexpr float BUILDING_HEIGHT = 5.5f;
+    static constexpr float TUNNEL_WIDTH = 4.0f;
+    static constexpr float TUNNEL_HEIGHT = 4.2f;
+
     MeshFlyweight archMesh;
     MeshFlyweight textBillboard;
 
@@ -37,8 +51,8 @@ public:
                 unsigned int texCobblestone, unsigned int texWoodDark,
                 unsigned int texTextArbeit) const
     {
-        float gateX = 135.0f; // Gate centre X
-        float gateZ = 0.0f;   // Gate centre Z
+        float gateX = GATE_X;
+        float gateZ = GATE_Z;
 
         // =============================================
         // GATEHOUSE BUILDING

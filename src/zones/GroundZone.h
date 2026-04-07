@@ -11,6 +11,9 @@
 // ================================================================
 // GroundZone: Ground plane, road network, Appellplatz
 // Per Section 2.2 of the v2 specification
+//
+// UPDATED: Road positions synchronized with new barracks layout
+// Gate moved to X=+155, camp spans X=-132 to X=+132
 // ================================================================
 class GroundZone {
 public:
@@ -20,42 +23,63 @@ public:
                 unsigned int texCobblestone, unsigned int texConcrete) const
     {
         // ---- MAIN GROUND PLANE ----
-        // Camp interior spans ~270x210 m, but we extend further for the exterior
+        // Extended to cover gate area at X=+155
         bindTex(shader, texGravel, 50.0f);
         setMat(shader, 0.22f, 0.92f, 0.02f, 2.0f);
-        // Main ground from fence perimeter outward slightly
-        plane.draw(shader, I, -140.0f, 0.0f, -100.0f, 280.0f, 1.0f, 200.0f, COL_GRAVEL, 2.0f);
+        // Main ground from X=-140 to X=+180 (includes gate area)
+        plane.draw(shader, I, -140.0f, 0.0f, -100.0f, 320.0f, 1.0f, 200.0f, COL_GRAVEL, 2.0f);
         unbind(shader);
 
         // ---- LAGERSTRASSE (main E-W road) ----
-        // Z = -68, width 7 m, from X = -130 to X = +130
+        // North of camp, Z = -72 (just north of northernmost row at Z=-54)
+        // Extended to reach gate at X=+155
         bindTex(shader, texDirtRoad, 20.0f);
         setMat(shader, 0.20f, 0.88f, 0.01f, 2.0f);
-        plane.draw(shader, I, -130.0f, 0.02f, -71.5f, 260.0f, 1.0f, 7.0f, COL_DIRT_ROAD, 4.0f);
+        // Extended from X=-130 to X=+160 to reach gate
+        plane.draw(shader, I, -130.0f, 0.02f, -75.5f, 290.0f, 1.0f, 7.0f, COL_DIRT_ROAD, 4.0f);
 
         // ---- INTER-ROW ROADS (N-S, between each row pair) ----
-        // Row Z-centres: -54, -24, 6, 36
-        plane.draw(shader, I, -130.0f, 0.02f, -44.0f, 260.0f, 1.0f, 10.0f, COL_DIRT_ROAD, 4.0f);
-        plane.draw(shader, I, -130.0f, 0.02f, -14.0f, 260.0f, 1.0f, 10.0f, COL_DIRT_ROAD, 4.0f);
-        plane.draw(shader, I, -130.0f, 0.02f, 16.0f, 260.0f, 1.0f, 10.0f, COL_DIRT_ROAD, 4.0f);
+        // Row Z-centres: -54, -18, +18, +54
+        // Road positions: halfway between rows, 10m width
+        // Between -54 and -18: Z = -36
+        // Between -18 and +18: Z = 0  
+        // Between +18 and +54: Z = +36
+        // South of +54: Z = +70
+        plane.draw(shader, I, -130.0f, 0.02f, -41.0f, 290.0f, 1.0f, 10.0f, COL_DIRT_ROAD, 4.0f);
+        plane.draw(shader, I, -130.0f, 0.02f, 0.0f, 290.0f, 1.0f, 10.0f, COL_DIRT_ROAD, 4.0f);
+        plane.draw(shader, I, -130.0f, 0.02f, +36.0f, 290.0f, 1.0f, 10.0f, COL_DIRT_ROAD, 4.0f);
         // South verge road
-        plane.draw(shader, I, -130.0f, 0.02f, 44.0f, 260.0f, 1.0f, 6.0f, COL_DIRT_ROAD, 4.0f);
+        plane.draw(shader, I, -130.0f, 0.02f, +70.0f, 290.0f, 1.0f, 6.0f, COL_DIRT_ROAD, 4.0f);
 
         // ---- INTER-COLUMN ROADS (E-W, between column pairs) ----
-        // Column X-centres: -116, -78, -40, -2, 36, 74, 112
-        // Gaps between columns
-        float colGaps[] = { -97.0f, -59.0f, -21.0f, 17.0f, 55.0f, 93.0f };
+        // Column X-centres: -112, -64, -16, +32, +80, +112, +128
+        // Roads at gaps: between -112/-64, -64/-16, -16/+32, +32/+80, +80/+112, +112/+128
+        // Gap sizes: 48m, 48m, 48m, 48m, 32m, 16m (last gaps smaller)
+        float colGaps[] = { -88.0f, -40.0f, +8.0f, +56.0f, +96.0f, +120.0f };
         for (int i = 0; i < 6; i++) {
             float rx = colGaps[i] - 4.0f; // road 8m wide, centred at gap
-            plane.draw(shader, I, rx, 0.02f, -65.0f, 8.0f, 1.0f, 115.0f, COL_DIRT_ROAD, 4.0f);
+            // Extended Z range to cover all 4 rows with 12m width each
+            // Z from -72 (south of -54) to +72 (north of +54)
+            plane.draw(shader, I, rx, 0.02f, -72.0f, 8.0f, 1.0f, 144.0f, COL_DIRT_ROAD, 4.0f);
         }
         unbind(shader);
 
+        // ---- GATE APPROACH ROAD ----
+        // Road from camp to gate at X=+155
+        bindTex(shader, texDirtRoad, 15.0f);
+        setMat(shader, 0.20f, 0.88f, 0.01f, 2.0f);
+        // From camp edge (X=+132) to gate (X=+155), 4m wide, centered at Z=0
+        plane.draw(shader, I, +132.0f, 0.02f, -2.0f, 23.0f, 1.0f, 4.0f, COL_DIRT_ROAD, 4.0f);
+        unbind(shader);
+
         // ---- APPELLPLATZ (Roll-Call Square) ----
-        // Centred at X=+36, Z=-13, dimensions 55m x 90m
+        // Repositioned: Centred at X=+28, Z=0 (between columns +8 and +48)
+        // Dimensions: 55m x 90m
         bindTex(shader, texGravel, 30.0f);
         setMat(shader, 0.22f, 0.92f, 0.02f, 2.0f);
-        plane.draw(shader, I, 8.5f, 0.03f, -58.0f, 55.0f, 1.0f, 90.0f,
+        // X centred at +28: from +0.5 to +55.5
+        // Z centred at 0: from -45 to +45
+        plane.draw(shader, I, +0.5f, 0.03f, -45.0f, 55.0f, 1.0f, 90.0f,
                    COL_GRAVEL * 0.85f, 2.0f);
         unbind(shader);
     }

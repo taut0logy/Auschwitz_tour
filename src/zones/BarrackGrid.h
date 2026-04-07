@@ -17,17 +17,26 @@
 //
 // Each block: 40m long (X) × 12m wide (Z) × 8m tall + 2.5m gabled roof
 // 4 rows × 7 columns
+//
+// REPOSITIONED: Shifted west to accommodate gate at X=+155
+// Updated to match prompt_v2 spec dimensions exactly
 // ================================================================
 class BarrackGrid {
 public:
-    // Column X-centres (7 columns)
-    static constexpr float COL_X[7] = { -116.0f, -78.0f, -40.0f, -2.0f, 36.0f, 74.0f, 112.0f };
-    // Row Z-centres (4 rows)
-    static constexpr float ROW_Z[4] = { -54.0f, -24.0f, 6.0f, 36.0f };
+    // FIXED: Column X-centres with PROPER SPACING
+    // Block length = 40m, with 8m gap between blocks
+    // Spacing = 48m between column centers
+    // Col 0 at -112 spans -132 to -92
+    // Col 1 at -64 spans -84 to -44 (8m gap from col 0)
+    // Col 6 at +128 spans +108 to +148, gate at +155 leaves 7m clearance
+    static constexpr float COL_X[7] = { -112.0f, -64.0f, -16.0f, +32.0f, +80.0f, +112.0f, +128.0f };
+    // Row Z-centres with proper spacing for 12m wide blocks + 24m gaps
+    static constexpr float ROW_Z[4] = { -54.0f, -18.0f, +18.0f, +54.0f };
 
-    static constexpr float BLOCK_LEN   = 32.0f;   // X (length spanning east-west)
-    static constexpr float BLOCK_WID   = 10.0f;   // Z (width spanning north-south)
-    static constexpr float BLOCK_HT    = 6.0f;    // wall height
+    // Updated to match prompt_v2 specification exactly
+    static constexpr float BLOCK_LEN   = 40.0f;   // X (length spanning east-west) - was 32m
+    static constexpr float BLOCK_WID   = 12.0f;   // Z (width spanning north-south) - was 10m
+    static constexpr float BLOCK_HT    = 8.0f;    // wall height - was 6m
     static constexpr float ROOF_RISE   = 2.5f;    // gable ridge above walls
     static constexpr float ROOF_THICK  = 0.3f;
 
@@ -125,34 +134,68 @@ private:
         cube.draw(shader, I, bx, 0.0f, bz, BLOCK_LEN, BLOCK_HT, BLOCK_WID, wallCol, 4.0f);
 
         // =============================================
-        // 3. Gabled roof
-        // Two sloped panels meeting at ridge Y = BLOCK_HT + ROOF_RISE
-        // Overhang: 0.5m on long sides, 0.3m on gable ends
+        // 3. Gabled Roof - CORRECTED: Two sloped panels + gable walls
+        // Roof runs along X (building length), slopes along Z (building width)
+        // Panels rotated around X-axis, starting from wall top
         // =============================================
+        
+        float ridgeY = BLOCK_HT + ROOF_RISE;
+        float overhangX = 0.5f;   // Gable end overhang
+        float overhangZ = 0.5f;   // Side overhang
+        float halfRun = BLOCK_WID * 0.5f + overhangZ;
+        float slantLen = sqrtf(halfRun * halfRun + ROOF_RISE * ROOF_RISE);
+        float slopeAngle = atan2f(ROOF_RISE, halfRun);
+        float roofLenX = BLOCK_LEN + 2.0f * overhangX;
+        
+        // ---- Roof panels (wood/roof tile texture) ----
         bindTex(shader, texRoofTile, 40.0f);
         shader.setVec3("material.ambient", COL_ROOF_TILE * 0.13f);
         shader.setVec3("material.diffuse", COL_ROOF_TILE * 0.72f);
         shader.setVec3("material.specular", glm::vec3(0.06f));
         shader.setFloat("material.shininess", 8.0f);
-
-        float ridgeY = BLOCK_HT + ROOF_RISE;
-        float slopeAngle = atanf(ROOF_RISE / (BLOCK_WID * 0.5f));
-        float slopeLen = sqrtf((BLOCK_WID * 0.5f + 0.5f) * (BLOCK_WID * 0.5f + 0.5f) + ROOF_RISE * ROOF_RISE);
-
-        // Left roof slope (South side, starts at south edge, draws up toward ridge)
-        glm::mat4 roofL = glm::translate(I, glm::vec3(bx - 0.3f, BLOCK_HT, bz - 0.5f));
-        roofL = glm::rotate(roofL, slopeAngle, glm::vec3(1.0f, 0.0f, 0.0f));
-        cube.draw(shader, roofL, 0, 0, 0, BLOCK_LEN + 0.6f, ROOF_THICK, slopeLen, COL_ROOF_TILE, 8.0f);
-
-        // Right roof slope (North side, starts at north edge, draws up toward ridge backwards)
-        glm::mat4 roofR = glm::translate(I, glm::vec3(bx - 0.3f, BLOCK_HT, bz + BLOCK_WID + 0.5f));
-        roofR = glm::rotate(roofR, -slopeAngle, glm::vec3(1.0f, 0.0f, 0.0f));
-        // Drawing into negative Z pushes it Southwards back to the ridge
-        cube.draw(shader, roofR, 0, -ROOF_THICK, -slopeLen, BLOCK_LEN + 0.6f, ROOF_THICK, slopeLen, COL_ROOF_TILE, 8.0f);
-
-        // Ridge beam
-        cube.draw(shader, I, bx - 0.3f, ridgeY - 0.125f, bz + BLOCK_WID * 0.5f - 0.125f,
-                  BLOCK_LEN + 0.6f, 0.25f, 0.25f, COL_ROOF_TILE * 0.8f, 4.0f);
+        
+        // South panel: starts at south edge, rotates UP toward ridge
+        {
+            glm::mat4 m = glm::translate(I, glm::vec3(bx - overhangX, BLOCK_HT, bz - overhangZ));
+            m = glm::rotate(m, -slopeAngle, glm::vec3(1.0f, 0.0f, 0.0f));
+            cube.draw(shader, m, 0.0f, 0.0f, 0.0f, roofLenX, ROOF_THICK, slantLen, COL_ROOF_TILE, 8.0f);
+        }
+        
+        // North panel: starts at ridge, rotates DOWN toward north edge
+        {
+            glm::mat4 m = glm::translate(I, glm::vec3(bx - overhangX, BLOCK_HT + ROOF_RISE, bz + BLOCK_WID * 0.5f));
+            m = glm::rotate(m, slopeAngle, glm::vec3(1.0f, 0.0f, 0.0f));
+            cube.draw(shader, m, 0.0f, 0.0f, 0.0f, roofLenX, ROOF_THICK, slantLen, COL_ROOF_TILE, 8.0f);
+            
+            // Re-draw ridge cap here to seal the top cleanly
+            cube.draw(shader, I, bx - overhangX, ridgeY - 0.125f, bz + BLOCK_WID * 0.5f - 0.125f,
+                      roofLenX, 0.25f, 0.25f, COL_ROOF_TILE * 0.8f, 4.0f);
+        }
+        unbind(shader);
+        
+        // ---- Gable walls (triangular fill at east and west ends) ----
+        // These fill the triangular gap under the roof at each end
+        bindTex(shader, wallTex, 8.0f);  // Use same texture as walls
+        shader.setVec3("material.ambient", wallCol * (isDark ? 0.06f : 0.12f));
+        shader.setVec3("material.diffuse", wallCol * (isDark ? 0.65f : 0.82f));
+        shader.setVec3("material.specular", glm::vec3(isDark ? 0.03f : 0.04f));
+        shader.setFloat("material.shininess", 4.0f);
+        
+        const int steps = 40;  // Number of steps for smooth gable
+        float sliceH = ROOF_RISE / (float)steps;
+        
+        for (int i = 0; i < steps; i++) {
+            float baseY = BLOCK_HT + i * sliceH;
+            float frac = (float)i / (float)steps;
+            float sliceW = BLOCK_WID * (1.0f - frac);  // Width narrows toward ridge
+            float sliceX = (BLOCK_WID - sliceW) * 0.5f;  // Centered
+            
+            // West gable (at bx)
+            cube.draw(shader, I, bx, baseY, bz + sliceX, 0.15f, sliceH, sliceW, wallCol, 4.0f);
+            
+            // East gable (at bx + BLOCK_LEN)
+            cube.draw(shader, I, bx + BLOCK_LEN - 0.15f, baseY, bz + sliceX, 0.15f, sliceH, sliceW, wallCol, 4.0f);
+        }
         unbind(shader);
 
         // =============================================

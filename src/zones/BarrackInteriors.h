@@ -31,7 +31,7 @@ public:
                 unsigned int texWoodPlank, unsigned int texBrickDark,
                 unsigned int texStoneFloor, unsigned int texPlasterWhite,
                 unsigned int texStrawBedding, unsigned int texBlackMetal,
-                unsigned int texTileGrey) const
+                unsigned int texTileGrey, unsigned int texRoofTile) const
     {
         for (int blockNum = 1; blockNum <= 28; blockNum++) {
             glm::vec3 blockCentre = BarrackGrid::getBlockCentre(blockNum);
@@ -44,7 +44,7 @@ public:
 
                 if (type == 0)
                     renderTypeA(shader, I, cube, cyl, sphere, plane, sw,
-                                texWoodPlank, texPlasterWhite, texStrawBedding, texBlackMetal);
+                                texWoodPlank, texRoofTile, texStrawBedding, texBlackMetal);
                 else if (type == 1)
                     renderTypeB(shader, I, cube, cyl, plane, sw,
                                 texTileGrey, texPlasterWhite);
@@ -68,10 +68,10 @@ public:
             float dist = glm::length(camera.position - blockCentre);
             if (dist < INTERIOR_DRAW_DIST) {
                 glm::vec3 sw = BarrackGrid::getBlockSW(blockNum);
-                // 4 bulbs per storey at X = 8, 16, 24, 32; Y = 3.5
+                // 4 bulbs per block at X = 8, 16, 24, 32; elevated for single high ceiling
                 for (float lx : {8.0f, 16.0f, 24.0f, 32.0f}) {
                     sphere.drawEmissive(unlitShader, I,
-                        sw.x + lx - 0.04f, 3.4f, sw.z + 5.5f - 0.04f,
+                        sw.x + lx - 0.04f, 7.0f, sw.z + 5.5f - 0.04f,
                         0.08f, 0.08f, 0.08f,
                         glm::vec3(1.0f, 0.93f, 0.53f)); // #FFEE88
                 }
@@ -85,6 +85,7 @@ private:
     static inline const glm::vec3 COL_BRICK_DARK = glm::vec3(0.35f, 0.17f, 0.05f);
     static inline const glm::vec3 COL_METAL     = glm::vec3(0.15f, 0.15f, 0.15f);
     static inline const glm::vec3 COL_TILE      = glm::vec3(0.55f, 0.55f, 0.53f);
+    static inline const glm::vec3 COL_ROOF_TILE  = glm::vec3(0.35f, 0.30f, 0.25f);
 
     int getInteriorType(int blockNum) const {
         if (blockNum == 11) return 2;           // Type C (punishment)
@@ -109,7 +110,7 @@ private:
     void renderTypeA(Shader& shader, const glm::mat4& I,
                      Cube& cube, Cylinder& cyl, Sphere& sphere, Plane& plane,
                      const glm::vec3& sw,
-                     unsigned int texWoodPlank, unsigned int texPlaster,
+                     unsigned int texWoodPlank, unsigned int texRoofTile,
                      unsigned int texStraw, unsigned int texBlackMetal) const
     {
         float fx = sw.x + 0.75f, fz = sw.z + 0.5f; // interior offset
@@ -119,16 +120,12 @@ private:
         setMat(shader, COL_WOOD, 0.18f, 0.78f, 0.08f, 8.0f);
         plane.draw(shader, I, fx, 0.02f, fz, 38.5f, 1.0f, 11.0f, COL_WOOD, 8.0f);
 
-        // Ceiling (underside of storey 2 slab)
-        bindTex(shader, texPlaster, 15.0f);
-        plane.draw(shader, I, fx, 3.8f, fz, 38.5f, 1.0f, 11.0f, glm::vec3(0.85f), 4.0f);
-        unbind(shader);
-
         // Central support columns (7 columns at centreline)
         bindTex(shader, texWoodPlank, 3.0f);
         for (int c = 0; c < 7; c++) {
             float cx = fx + 5.0f + c * 5.0f;
-            cube.draw(shader, I, cx - 0.2f, 0.0f, fz + 5.3f, 0.4f, 3.8f, 0.4f, COL_WOOD * 0.8f, 8.0f);
+            // Extend columns to the roof ridge (8m wall height + 2.5m roof rise = ~10.5m)
+            cube.draw(shader, I, cx - 0.2f, 0.0f, fz + 5.3f, 0.4f, 10.5f, 0.4f, COL_WOOD * 0.8f, 8.0f);
         }
 
         // Triple-tier bunk beds (10 per side)

@@ -151,24 +151,27 @@ private:
         lamps.clear();
         float pi = glm::pi<float>();
 
-        // Lagerstrasse: every 20m, alternating sides, Z = -68 ± 4.5
-        for (float x = -125.0f; x <= 125.0f; x += 20.0f) {
+        // UPDATED: Lagerstrasse (Z = -75.5) - every 20m, alternating sides
+        // Extended to cover new camp dimensions
+        for (float x = -125.0f; x <= 140.0f; x += 20.0f) {
             int idx = (int)((x + 125.0f) / 20.0f);
-            float z = -68.0f + (idx % 2 == 0 ? 4.5f : -4.5f);
+            float z = -75.5f + (idx % 2 == 0 ? 4.5f : -4.5f);
             float rot = (idx % 2 == 0) ? pi * 0.5f : -pi * 0.5f; // face road
             lamps.push_back({ glm::vec3(x, 0.0f, z), rot });
         }
 
-        // Inter-row roads: every 24m, offset 3m
-        float rowRoadZ[] = { -41.0f, -13.0f, 15.0f, 44.0f };
+        // UPDATED: Inter-row roads - synchronized with new row positions
+        // Row Z-centres: -54, -18, +18, +54
+        // Road positions: -36, 0, +36, +70
+        float rowRoadZ[] = { -36.0f, 0.0f, +36.0f, +70.0f };
         for (int r = 0; r < 4; r++) {
-            for (float x = -120.0f; x <= 120.0f; x += 24.0f) {
+            for (float x = -120.0f; x <= 130.0f; x += 24.0f) {
                 lamps.push_back({ glm::vec3(x, 0.0f, rowRoadZ[r] + 3.0f), -pi * 0.5f });
             }
         }
 
-        // Appellplatz perimeter: 8 lamps
-        float appCX = 36.0f, appCZ = -13.0f;
+        // UPDATED: Appellplatz perimeter - repositioned at X=+28, Z=0
+        float appCX = 28.0f, appCZ = 0.0f;
         float appW = 55.0f * 0.5f, appH = 90.0f * 0.5f;
         lamps.push_back({ glm::vec3(appCX - appW + 3.0f, 0, appCZ - appH + 3.0f), pi * 0.25f });
         lamps.push_back({ glm::vec3(appCX + appW - 3.0f, 0, appCZ - appH + 3.0f), pi * 0.75f });
@@ -179,11 +182,12 @@ private:
         lamps.push_back({ glm::vec3(appCX, 0, appCZ - appH + 3.0f), pi * 0.5f });
         lamps.push_back({ glm::vec3(appCX, 0, appCZ + appH - 3.0f), -pi * 0.5f });
 
-        // Near gate: 4 lamps
-        lamps.push_back({ glm::vec3(130.0f, 0, -5.0f), pi });
-        lamps.push_back({ glm::vec3(130.0f, 0, 5.0f), pi });
-        lamps.push_back({ glm::vec3(125.0f, 0, -3.0f), -pi * 0.5f });
-        lamps.push_back({ glm::vec3(125.0f, 0, 3.0f), pi * 0.5f });
+        // UPDATED: Near gate - positioned for gate at X=+155
+        // Gate entrance at X=+155, Z=0
+        lamps.push_back({ glm::vec3(150.0f, 0, -6.0f), pi * 0.75f });
+        lamps.push_back({ glm::vec3(150.0f, 0, +6.0f), -pi * 0.75f });
+        lamps.push_back({ glm::vec3(145.0f, 0, -4.0f), pi });
+        lamps.push_back({ glm::vec3(145.0f, 0, +4.0f), pi });
     }
 };
 
