@@ -122,8 +122,8 @@ private:
                   BLOCK_LEN + 0.4f, 0.4f, BLOCK_WID + 0.4f, COL_CONCRETE, 6.0f);
 
         // =============================================
-        // 2. Main wall box (40 × 8 × 12)
-        // UV: repeat every 0.5m → 80 repeats along 40m
+        // 2. Main walls (with cutouts for windows and doors)
+        // 40 × 8 × 12, wall thickness = 0.2m
         // =============================================
         bindTex(shader, wallTex, 80.0f);
         shader.setVec3("material.ambient", wallCol * (isDark ? 0.06f : 0.12f));
@@ -131,7 +131,63 @@ private:
         shader.setVec3("material.specular", glm::vec3(isDark ? 0.03f : 0.04f));
         shader.setFloat("material.shininess", 4.0f);
         shader.setVec3("material.emissive", glm::vec3(0.0f));
-        cube.draw(shader, I, bx, 0.0f, bz, BLOCK_LEN, BLOCK_HT, BLOCK_WID, wallCol, 4.0f);
+
+        float thick = 0.2f;
+        auto drawStrip = [&](float x, float y, float z, float w, float h, float d) {
+            cube.draw(shader, I, x, y, z, w, h, d, wallCol, 4.0f);
+        };
+
+        float winW = 1.0f, winH = 1.2f;
+        float firstWinX = 2.5f;
+        float winSpacingX = (BLOCK_LEN - 5.0f) / 6.0f;
+
+        // South & North Walls
+        for (int side = 0; side < 2; side++) {
+            float wz = (side == 0) ? bz : bz + BLOCK_WID - thick;
+            
+            // Solid horizontal bands
+            drawStrip(bx, 0.0f, wz, BLOCK_LEN, 1.4f, thick); // bottom
+            drawStrip(bx, 2.6f, wz, BLOCK_LEN, 1.3f, thick); // middle
+            drawStrip(bx, 5.1f, wz, BLOCK_LEN, 2.9f, thick); // top
+
+            // Pillars between windows
+            for (int storey = 0; storey < 2; storey++) {
+                float wy = (storey == 0) ? 1.4f : 3.9f;
+                float curX = 0.0f;
+                for (int w = 0; w < 7; w++) {
+                    float cx = firstWinX + w * winSpacingX;
+                    float left = cx - winW * 0.5f;
+                    drawStrip(bx + curX, wy, wz, left - curX, winH, thick);
+                    curX = cx + winW * 0.5f;
+                }
+                drawStrip(bx + curX, wy, wz, BLOCK_LEN - curX, winH, thick);
+            }
+        }
+
+        // West & East Walls (Gable ends)
+        float innerZ = bz + thick;
+        float innerLen = BLOCK_WID - 2.0f * thick;
+        float doorW = 1.2f, doorH = 2.2f;
+        float doorLeft = (BLOCK_WID * 0.5f) - (doorW * 0.5f) - thick;
+        float gableWinLeft = (BLOCK_WID * 0.5f) - (winW * 0.5f) - thick;
+
+        for (int side = 0; side < 2; side++) {
+            float wx = (side == 0) ? bx : bx + BLOCK_LEN - thick;
+            
+            // Y=0 to 2.2 (Door gap)
+            drawStrip(wx, 0.0f, innerZ, thick, doorH, doorLeft);
+            drawStrip(wx, 0.0f, innerZ + doorLeft + doorW, thick, doorH, innerLen - doorLeft - doorW);
+            
+            // Y=2.2 to 3.9 (solid middle)
+            drawStrip(wx, doorH, innerZ, thick, 3.9f - doorH, innerLen);
+
+            // Y=3.9 to 5.1 (Storey 1 Window gap)
+            drawStrip(wx, 3.9f, innerZ, thick, winH, gableWinLeft);
+            drawStrip(wx, 3.9f, innerZ + gableWinLeft + winW, thick, winH, innerLen - gableWinLeft - winW);
+
+            // Y=5.1 to 8.0 (solid top)
+            drawStrip(wx, 5.1f, innerZ, thick, BLOCK_HT - 5.1f, innerLen);
+        }
 
         // =============================================
         // 3. Gabled Roof - CORRECTED: Two sloped panels + gable walls
@@ -200,8 +256,8 @@ private:
 
         // =============================================
         // 4. Windows (7 per storey per long face = 28 total)
-        // Each window: 1.0m wide × 1.2m tall, recessed 0.15m
-        // Frame: 0.08m wide box strips
+        // Each window hole is 1.0m wide × 1.2m tall.
+        // Wooden frames protrude 0.04m from both inside and outside of the 0.2m thick wall.
         // =============================================
         bindTex(shader, texWoodDark, 2.0f);
         shader.setVec3("material.ambient", COL_WOOD_DARK * 0.15f);
@@ -210,72 +266,51 @@ private:
         shader.setFloat("material.shininess", 6.0f);
         shader.setVec3("material.emissive", glm::vec3(0.0f));
 
-        float winW = 1.0f, winH = 1.2f;
         float frameW = 0.08f;
-        float firstWinX = 2.5f;
-        float winSpacingX = (BLOCK_LEN - 5.0f) / 6.0f; 
+        float frameD = thick + 0.08f; // 0.28m depth to protrude 0.04m on both sides
+        float protrude = 0.04f;
 
         for (int storey = 0; storey < 2; storey++) {
-            float winY = (storey == 0) ? 2.0f - winH * 0.5f : 4.5f - winH * 0.5f;
+            float winY = (storey == 0) ? 1.4f : 3.9f;
 
             for (int w = 0; w < 7; w++) {
-                float winLocalX = firstWinX + w * winSpacingX;
+                float winLocalX = firstWinX + w * winSpacingX - winW * 0.5f;
 
-                // South face windows (Z = bz)
-                // Top frame
-                cube.draw(shader, I, bx + winLocalX - frameW, winY + winH, bz - 0.04f,
-                          winW + frameW * 2, frameW, 0.15f, COL_WOOD_DARK, 6.0f);
-                // Bottom frame (sill)
-                cube.draw(shader, I, bx + winLocalX - frameW, winY - frameW, bz - 0.06f,
-                          winW + frameW * 2, frameW, 0.18f, COL_WOOD_DARK, 6.0f);
-                // Left frame
-                cube.draw(shader, I, bx + winLocalX - frameW, winY, bz - 0.04f,
-                          frameW, winH, 0.15f, COL_WOOD_DARK, 6.0f);
-                // Right frame
-                cube.draw(shader, I, bx + winLocalX + winW, winY, bz - 0.04f,
-                          frameW, winH, 0.15f, COL_WOOD_DARK, 6.0f);
+                // South face windows (Wall Z = bz to bz + thick)
+                float sZ = bz - protrude;
+                cube.draw(shader, I, bx + winLocalX - frameW, winY + winH, sZ, winW + frameW * 2, frameW, frameD, COL_WOOD_DARK, 6.0f); // Top
+                cube.draw(shader, I, bx + winLocalX - frameW, winY - frameW, sZ, winW + frameW * 2, frameW, frameD + 0.02f, COL_WOOD_DARK, 6.0f); // Sill
+                cube.draw(shader, I, bx + winLocalX - frameW, winY, sZ, frameW, winH, frameD, COL_WOOD_DARK, 6.0f); // Left
+                cube.draw(shader, I, bx + winLocalX + winW, winY, sZ, frameW, winH, frameD, COL_WOOD_DARK, 6.0f); // Right
 
-                // North face windows (Z = bz + BLOCK_WID)
-                cube.draw(shader, I, bx + winLocalX - frameW, winY + winH, bz + BLOCK_WID - 0.11f,
-                          winW + frameW * 2, frameW, 0.15f, COL_WOOD_DARK, 6.0f);
-                cube.draw(shader, I, bx + winLocalX - frameW, winY - frameW, bz + BLOCK_WID - 0.12f,
-                          winW + frameW * 2, frameW, 0.18f, COL_WOOD_DARK, 6.0f);
-                cube.draw(shader, I, bx + winLocalX - frameW, winY, bz + BLOCK_WID - 0.11f,
-                          frameW, winH, 0.15f, COL_WOOD_DARK, 6.0f);
-                cube.draw(shader, I, bx + winLocalX + winW, winY, bz + BLOCK_WID - 0.11f,
-                          frameW, winH, 0.15f, COL_WOOD_DARK, 6.0f);
+                // North face windows (Wall Z = bz + WID - thick to bz + WID)
+                float nZ = bz + BLOCK_WID - thick - protrude;
+                cube.draw(shader, I, bx + winLocalX - frameW, winY + winH, nZ, winW + frameW * 2, frameW, frameD, COL_WOOD_DARK, 6.0f);
+                cube.draw(shader, I, bx + winLocalX - frameW, winY - frameW, nZ, winW + frameW * 2, frameW, frameD + 0.02f, COL_WOOD_DARK, 6.0f);
+                cube.draw(shader, I, bx + winLocalX - frameW, winY, nZ, frameW, winH, frameD, COL_WOOD_DARK, 6.0f);
+                cube.draw(shader, I, bx + winLocalX + winW, winY, nZ, frameW, winH, frameD, COL_WOOD_DARK, 6.0f);
 
                 // Iron bars for Block 11 / Block 10
                 if (isDark) {
                     for (int bar = 0; bar < 6; bar++) {
                         float barX = bx + winLocalX + (float)(bar + 1) * winW / 7.0f;
-                        // South face bars
-                        cyl.draw(shader, I, barX - 0.015f, winY, bz - 0.05f,
-                                 0.03f, winH, 0.03f, glm::vec3(0.3f), 32.0f);
-                        // North face bars
-                        cyl.draw(shader, I, barX - 0.015f, winY, bz + BLOCK_WID + 0.02f,
-                                 0.03f, winH, 0.03f, glm::vec3(0.3f), 32.0f);
+                        cyl.draw(shader, I, barX - 0.015f, winY, sZ + frameD * 0.5f, 0.03f, winH, 0.03f, glm::vec3(0.3f), 32.0f);
+                        cyl.draw(shader, I, barX - 0.015f, winY, nZ + frameD * 0.5f, 0.03f, winH, 0.03f, glm::vec3(0.3f), 32.0f);
                     }
                 }
             }
         }
 
-        // Gable end windows (2 per gable, at east and west walls)
+        // Gable end windows (Only storey 1, to prevent clash with ground floor door)
         for (int side = 0; side < 2; side++) {
-            float gableX = (side == 0) ? bx - 0.04f : bx + BLOCK_LEN - 0.11f;
-            for (int storey = 0; storey < 2; storey++) {
-                float winY = (storey == 0) ? 2.0f - winH * 0.5f : 4.5f - winH * 0.5f;
-                float winLocalZ = BLOCK_WID * 0.5f - winW * 0.5f;
-                // Frame on gable end
-                cube.draw(shader, I, gableX, winY + winH, bz + winLocalZ - frameW,
-                          0.15f, frameW, winW + frameW * 2, COL_WOOD_DARK, 6.0f);
-                cube.draw(shader, I, gableX, winY - frameW, bz + winLocalZ - frameW,
-                          0.15f, frameW, winW + frameW * 2, COL_WOOD_DARK, 6.0f);
-                cube.draw(shader, I, gableX, winY, bz + winLocalZ - frameW,
-                          0.15f, winH, frameW, COL_WOOD_DARK, 6.0f);
-                cube.draw(shader, I, gableX, winY, bz + winLocalZ + winW,
-                          0.15f, winH, frameW, COL_WOOD_DARK, 6.0f);
-            }
+            float gableX = (side == 0) ? bx - protrude : bx + BLOCK_LEN - thick - protrude;
+            float winY = 3.9f;
+            float winLocalZ = BLOCK_WID * 0.5f - winW * 0.5f;
+
+            cube.draw(shader, I, gableX, winY + winH, bz + winLocalZ - frameW, frameD, frameW, winW + frameW * 2, COL_WOOD_DARK, 6.0f);
+            cube.draw(shader, I, gableX, winY - frameW, bz + winLocalZ - frameW, frameD + 0.02f, frameW, winW + frameW * 2, COL_WOOD_DARK, 6.0f);
+            cube.draw(shader, I, gableX, winY, bz + winLocalZ - frameW, frameD, winH, frameW, COL_WOOD_DARK, 6.0f);
+            cube.draw(shader, I, gableX, winY, bz + winLocalZ + winW, frameD, winH, frameW, COL_WOOD_DARK, 6.0f);
         }
         unbind(shader);
 
@@ -284,17 +319,16 @@ private:
         // 1.2m wide × 2.2m tall, centred on wall
         // =============================================
         bindTex(shader, texWoodDark, 2.0f);
-        float doorW = 1.2f, doorH = 2.2f;
         float doorZ = bz + BLOCK_WID * 0.5f - doorW * 0.5f;
 
         // West gable door
-        cube.draw(shader, I, bx - 0.12f, 0.0f, doorZ, 0.12f, doorH, doorW, COL_WOOD_DARK, 6.0f);
+        cube.draw(shader, I, bx - protrude, 0.0f, doorZ, frameD, doorH, doorW, COL_WOOD_DARK, 6.0f);
         // East gable door
-        cube.draw(shader, I, bx + BLOCK_LEN, 0.0f, doorZ, 0.12f, doorH, doorW, COL_WOOD_DARK, 6.0f);
+        cube.draw(shader, I, bx + BLOCK_LEN - thick - protrude, 0.0f, doorZ, frameD, doorH, doorW, COL_WOOD_DARK, 6.0f);
 
         // Door frames
-        cube.draw(shader, I, bx - 0.15f, doorH, doorZ - 0.1f, 0.15f, 0.1f, doorW + 0.2f, COL_WOOD_DARK, 6.0f);
-        cube.draw(shader, I, bx + BLOCK_LEN, doorH, doorZ - 0.1f, 0.15f, 0.1f, doorW + 0.2f, COL_WOOD_DARK, 6.0f);
+        cube.draw(shader, I, bx - protrude - 0.02f, doorH, doorZ - 0.1f, frameD + 0.04f, 0.1f, doorW + 0.2f, COL_WOOD_DARK, 6.0f);
+        cube.draw(shader, I, bx + BLOCK_LEN - thick - protrude - 0.02f, doorH, doorZ - 0.1f, frameD + 0.04f, 0.1f, doorW + 0.2f, COL_WOOD_DARK, 6.0f);
         unbind(shader);
 
         // =============================================

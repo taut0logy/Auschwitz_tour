@@ -33,22 +33,21 @@ public:
     std::vector<TreeInstance> trees;
 
     void init() {
-        std::string axiom = "F";
-        std::string rules = "F[+F]F[-F]F";
-        int iterations = 4;  // v2: 4 iterations
+        std::string sentence = "X";
+        int iterations = 5;
 
-        // Expand L-system
-        std::string sentence = axiom;
+        // X = bud (draws leaves), F = branch segment
         for (int i = 0; i < iterations; i++) {
             std::string next;
             for (char c : sentence) {
-                if (c == 'F') next += rules;
+                if (c == 'X') next += "F-[[X]+X]+F[+FX]-X";
+                else if (c == 'F') next += "FF";
                 else next += c;
             }
             sentence = next;
         }
 
-        // Generate geometry from sentence using turtle graphics
+        // Generate geometry from sentence using 3D turtle graphics
         generateGeometry(sentence);
         placeTrees();
     }
@@ -113,18 +112,16 @@ public:
     }
 
 private:
-    static constexpr float ANGLE = 25.7f;
-    static constexpr float INIT_LENGTH = 2.0f;
-    static constexpr float INIT_RADIUS = 0.12f;
-    static constexpr float LENGTH_SHRINK = 0.6f;
-    static constexpr float RADIUS_SHRINK = 0.65f;
-
+    static constexpr float ANGLE = 25.0f;
+    static constexpr float INIT_LENGTH = 0.45f;
+    static constexpr float INIT_RADIUS = 0.20f;
+    
     struct TurtleState {
         glm::vec3 pos;
         glm::vec3 dir;
-        float length;
+        glm::vec3 right;
+        glm::vec3 up;
         float radius;
-        int depth;
     };
 
     void generateGeometry(const std::string& sentence) {
@@ -134,47 +131,54 @@ private:
         TurtleState turtle;
         turtle.pos = glm::vec3(0.0f, 0.0f, 0.0f);
         turtle.dir = glm::vec3(0.0f, 1.0f, 0.0f);
-        turtle.length = INIT_LENGTH;
+        turtle.right = glm::vec3(1.0f, 0.0f, 0.0f);
+        turtle.up = glm::vec3(0.0f, 0.0f, 1.0f);
         turtle.radius = INIT_RADIUS;
-        turtle.depth = 0;
 
         std::stack<TurtleState> stateStack;
 
         for (char c : sentence) {
             if (c == 'F') {
                 // Draw a branch segment
-                glm::vec3 endPos = turtle.pos + turtle.dir * turtle.length;
+                glm::vec3 endPos = turtle.pos + turtle.dir * INIT_LENGTH;
                 addCylinder(branchVerts, turtle.pos, endPos, turtle.radius);
                 turtle.pos = endPos;
-                turtle.length *= LENGTH_SHRINK;
-                turtle.radius *= RADIUS_SHRINK;
-                turtle.depth++;
             }
             else if (c == '+') {
-                // Rotate CW around Z axis
-                float rad = glm::radians(ANGLE);
-                glm::vec3 axis(sinf(turtle.depth * 0.7f), 0, cosf(turtle.depth * 0.7f));
-                glm::mat4 rot = glm::rotate(glm::mat4(1.0f), rad, axis);
+                // Pitch up (rotate around local up/Z axis)
+                float rad = glm::radians(ANGLE + (rand() % 10 - 5));
+                glm::mat4 rot = glm::rotate(glm::mat4(1.0f), rad, turtle.up);
                 turtle.dir = glm::normalize(glm::vec3(rot * glm::vec4(turtle.dir, 0.0f)));
+                turtle.right = glm::normalize(glm::vec3(rot * glm::vec4(turtle.right, 0.0f)));
             }
             else if (c == '-') {
-                float rad = glm::radians(-ANGLE);
-                glm::vec3 axis(sinf(turtle.depth * 0.7f), 0, cosf(turtle.depth * 0.7f));
-                glm::mat4 rot = glm::rotate(glm::mat4(1.0f), rad, axis);
+                // Pitch down
+                float rad = glm::radians(-ANGLE + (rand() % 10 - 5));
+                glm::mat4 rot = glm::rotate(glm::mat4(1.0f), rad, turtle.up);
                 turtle.dir = glm::normalize(glm::vec3(rot * glm::vec4(turtle.dir, 0.0f)));
+                turtle.right = glm::normalize(glm::vec3(rot * glm::vec4(turtle.right, 0.0f)));
             }
             else if (c == '[') {
                 stateStack.push(turtle);
-                // Also add leaf at branch tips
-                if (turtle.depth > 3) {
-                    addLeafQuad(leafVerts, turtle.pos, turtle.dir);
-                }
+                // Branches get thinner
+                turtle.radius *= 0.65f;
+                if (turtle.radius < 0.02f) turtle.radius = 0.02f;
+
+                // 3D random roll to scatter branches naturally in 3D
+                float roll = glm::radians((float)(rand() % 360));
+                glm::mat4 rot = glm::rotate(glm::mat4(1.0f), roll, turtle.dir);
+                turtle.right = glm::normalize(glm::vec3(rot * glm::vec4(turtle.right, 0.0f)));
+                turtle.up = glm::normalize(glm::vec3(rot * glm::vec4(turtle.up, 0.0f)));
             }
             else if (c == ']') {
                 if (!stateStack.empty()) {
                     turtle = stateStack.top();
                     stateStack.pop();
                 }
+            }
+            else if (c == 'X') {
+                // X represents the branch tip/bud. Draw nicely formatted leaves here!
+                addLeaves(leafVerts, turtle.pos, turtle.dir, turtle.right);
             }
         }
 
@@ -218,24 +222,28 @@ private:
     void addCylinder(std::vector<float>& verts,
                      const glm::vec3& base, const glm::vec3& tip, float radius) const
     {
-        int sides = 6;
+        int sides = 5; // Good balance for high density tree rendering
         glm::vec3 dir = glm::normalize(tip - base);
-        glm::vec3 perp;
-        if (fabsf(dir.y) < 0.99f)
-            perp = glm::normalize(glm::cross(dir, glm::vec3(0, 1, 0)));
-        else
-            perp = glm::normalize(glm::cross(dir, glm::vec3(1, 0, 0)));
-        glm::vec3 perp2 = glm::normalize(glm::cross(dir, perp));
+        
+        glm::vec3 up(0, 1, 0);
+        if (fabs(dir.y) > 0.99f) up = glm::vec3(1, 0, 0);
+        glm::vec3 right = glm::normalize(glm::cross(up, dir));
+        glm::vec3 forward = glm::cross(dir, right);
 
         for (int i = 0; i < sides; i++) {
             float a0 = (float)i / sides * 2.0f * glm::pi<float>();
             float a1 = (float)(i + 1) / sides * 2.0f * glm::pi<float>();
-            glm::vec3 n0 = perp * cosf(a0) + perp2 * sinf(a0);
-            glm::vec3 n1 = perp * cosf(a1) + perp2 * sinf(a1);
+            
+            glm::vec3 n0 = right * cosf(a0) + forward * sinf(a0);
+            glm::vec3 n1 = right * cosf(a1) + forward * sinf(a1);
+            
             glm::vec3 b0 = base + n0 * radius;
             glm::vec3 b1 = base + n1 * radius;
-            glm::vec3 t0 = tip + n0 * radius * 0.7f;
-            glm::vec3 t1 = tip + n1 * radius * 0.7f;
+            
+            // Slight natural taper along the continuous branch segment
+            float tipRadius = radius * 0.8f;
+            glm::vec3 t0 = tip + n0 * tipRadius;
+            glm::vec3 t1 = tip + n1 * tipRadius;
 
             // Triangle 1
             verts.insert(verts.end(), {b0.x,b0.y,b0.z, n0.x,n0.y,n0.z, 0,0});
@@ -248,39 +256,42 @@ private:
         }
     }
 
-    void addLeafQuad(std::vector<float>& verts,
-                     const glm::vec3& pos, const glm::vec3& dir) const
+    void addLeaves(std::vector<float>& verts,
+                   const glm::vec3& pos, const glm::vec3& dir, const glm::vec3& rightAxis) const
     {
-        float size = 1.2f; // Much larger leaf cluster billboard
-        glm::vec3 n(0, 1, 0); // Upward normal for lighting
+        // Draw 4 leaves per bud (X), bent beautifully outward and oriented vertically.
+        // leaf_alpha.png is a single vertical leaf with the stem at the bottom (V=0).
+        float leafW = 0.8f;
+        float leafL = 1.2f;
         
-        // Plane 1 (XZ aligned)
-        glm::vec3 right1(1, 0, 0);
-        glm::vec3 p0_1 = pos - right1 * size;
-        glm::vec3 p1_1 = pos + right1 * size;
-        glm::vec3 p2_1 = pos + right1 * size + glm::vec3(0, size*1.5f, 0);
-        glm::vec3 p3_1 = pos - right1 * size + glm::vec3(0, size*1.5f, 0);
-
-        verts.insert(verts.end(), {p0_1.x,p0_1.y,p0_1.z, n.x,n.y,n.z, 0,0});
-        verts.insert(verts.end(), {p1_1.x,p1_1.y,p1_1.z, n.x,n.y,n.z, 1,0});
-        verts.insert(verts.end(), {p2_1.x,p2_1.y,p2_1.z, n.x,n.y,n.z, 1,1});
-        verts.insert(verts.end(), {p2_1.x,p2_1.y,p2_1.z, n.x,n.y,n.z, 1,1});
-        verts.insert(verts.end(), {p3_1.x,p3_1.y,p3_1.z, n.x,n.y,n.z, 0,1});
-        verts.insert(verts.end(), {p0_1.x,p0_1.y,p0_1.z, n.x,n.y,n.z, 0,0});
-
-        // Plane 2 (YZ aligned)
-        glm::vec3 right2(0, 0, 1);
-        glm::vec3 p0_2 = pos - right2 * size;
-        glm::vec3 p1_2 = pos + right2 * size;
-        glm::vec3 p2_2 = pos + right2 * size + glm::vec3(0, size*1.5f, 0);
-        glm::vec3 p3_2 = pos - right2 * size + glm::vec3(0, size*1.5f, 0);
-
-        verts.insert(verts.end(), {p0_2.x,p0_2.y,p0_2.z, n.x,n.y,n.z, 0,0});
-        verts.insert(verts.end(), {p1_2.x,p1_2.y,p1_2.z, n.x,n.y,n.z, 1,0});
-        verts.insert(verts.end(), {p2_2.x,p2_2.y,p2_2.z, n.x,n.y,n.z, 1,1});
-        verts.insert(verts.end(), {p2_2.x,p2_2.y,p2_2.z, n.x,n.y,n.z, 1,1});
-        verts.insert(verts.end(), {p3_2.x,p3_2.y,p3_2.z, n.x,n.y,n.z, 0,1});
-        verts.insert(verts.end(), {p0_2.x,p0_2.y,p0_2.z, n.x,n.y,n.z, 0,0});
+        for (int i = 0; i < 4; ++i) {
+            // Spin each leaf around the branch tip
+            float angle = glm::radians(i * 90.0f + (rand() % 30));
+            glm::mat4 rot = glm::rotate(glm::mat4(1.0f), angle, dir);
+            glm::vec3 localRight = glm::normalize(glm::vec3(rot * glm::vec4(rightAxis, 0.0f)));
+            
+            // Bend outward
+            glm::mat4 bend = glm::rotate(glm::mat4(1.0f), glm::radians(55.0f), localRight);
+            glm::vec3 leafDir = glm::normalize(glm::vec3(bend * glm::vec4(dir, 0.0f)));
+            
+            // Generate Quad vertices starting from stem
+            glm::vec3 p0 = pos - localRight * (leafW * 0.5f);
+            glm::vec3 p1 = pos + localRight * (leafW * 0.5f);
+            glm::vec3 p2 = p1 + leafDir * leafL;
+            glm::vec3 p3 = p0 + leafDir * leafL;
+            
+            glm::vec3 n = glm::normalize(glm::cross(localRight, leafDir));
+            
+            // V=0 at the stem base, V=1 at the leaf tip. 
+            // Tri 1
+            verts.insert(verts.end(), {p0.x,p0.y,p0.z, n.x,n.y,n.z, 0,0});
+            verts.insert(verts.end(), {p1.x,p1.y,p1.z, n.x,n.y,n.z, 1,0});
+            verts.insert(verts.end(), {p2.x,p2.y,p2.z, n.x,n.y,n.z, 1,1});
+            // Tri 2
+            verts.insert(verts.end(), {p2.x,p2.y,p2.z, n.x,n.y,n.z, 1,1});
+            verts.insert(verts.end(), {p3.x,p3.y,p3.z, n.x,n.y,n.z, 0,1});
+            verts.insert(verts.end(), {p0.x,p0.y,p0.z, n.x,n.y,n.z, 0,0});
+        }
     }
 
     void placeTrees() {

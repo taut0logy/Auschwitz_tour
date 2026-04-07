@@ -281,7 +281,7 @@ private:
     {
         glm::vec3 sw = BarrackGrid::getBlockSW(blockNum);
         float winW = 1.0f, winH = 1.2f;
-        float firstWinX = 2.5f, winSpacing = 5.2f;
+        float firstWinX = 2.5f, winSpacingX = (BarrackGrid::BLOCK_LEN - 5.0f) / 6.0f;
 
         shader.setBool("useTexture", false);
         shader.setVec3("material.ambient", glm::vec3(0.0f));
@@ -291,13 +291,13 @@ private:
         shader.setVec3("material.emissive", glm::vec3(0.6f, 0.55f, 0.3f)); // warm yellow glow
 
         for (int storey = 0; storey < 2; storey++) {
-            float winY = (storey == 0) ? 2.0f - winH * 0.5f : 5.5f - winH * 0.5f;
+            float winY = (storey == 0) ? 1.4f : 3.9f;
             for (int w = 0; w < 7; w++) {
-                float wx = sw.x + firstWinX + w * winSpacing;
-                // South face glow
+                float wx = sw.x + firstWinX + w * winSpacingX - winW * 0.5f;
+                // South face glow (slightly inside the window cutout)
                 cube.draw(shader, I, wx, winY, sw.z - 0.05f, winW, winH, 0.02f, glm::vec3(0.6f, 0.55f, 0.3f), 1.0f);
                 // North face glow
-                cube.draw(shader, I, wx, winY, sw.z + 12.0f + 0.03f, winW, winH, 0.02f, glm::vec3(0.6f, 0.55f, 0.3f), 1.0f);
+                cube.draw(shader, I, wx, winY, sw.z + BarrackGrid::BLOCK_WID + 0.03f, winW, winH, 0.02f, glm::vec3(0.6f, 0.55f, 0.3f), 1.0f);
             }
         }
 
