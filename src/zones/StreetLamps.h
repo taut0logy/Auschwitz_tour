@@ -45,8 +45,13 @@ public:
         }
     }
 
-    // Render emissive bulbs (with unlit shader — no lighting calc)
-    void renderBulbs(Shader& unlitShader, const glm::mat4& I, Sphere& sphere) const {
+    // Render lamp bulbs with day/night color behavior.
+    void renderBulbs(Shader& unlitShader, const glm::mat4& I, Sphere& sphere,
+                     bool isDaytime, float lampIntensity) const {
+        glm::vec3 bulbColor = isDaytime
+            ? glm::vec3(0.33f, 0.33f, 0.33f)
+            : glm::vec3(1.0f, 0.95f, 0.7f) * (0.35f + 0.65f * lampIntensity);
+
         for (const auto& lamp : lamps) {
             glm::vec3 bulbPos = lamp.position + glm::vec3(
                 1.2f * cosf(lamp.rotationY),
@@ -56,7 +61,7 @@ public:
             sphere.drawEmissive(unlitShader, I,
                 bulbPos.x - 0.08f, bulbPos.y - 0.08f, bulbPos.z - 0.08f,
                 0.16f, 0.16f, 0.16f,
-                glm::vec3(1.0f, 0.95f, 0.7f)); // Bright warm yellow
+                bulbColor);
         }
     }
 
@@ -170,9 +175,9 @@ private:
             }
         }
 
-        // UPDATED: Appellplatz perimeter - repositioned at X=+28, Z=0
-        float appCX = 28.0f, appCZ = 0.0f;
-        float appW = 55.0f * 0.5f, appH = 90.0f * 0.5f;
+        // UPDATED: Appellplatz perimeter - centered in camp core at X=+8, Z=0
+        float appCX = 8.0f, appCZ = 0.0f;
+        float appW = 48.0f * 0.5f, appH = 82.0f * 0.5f;
         lamps.push_back({ glm::vec3(appCX - appW + 3.0f, 0, appCZ - appH + 3.0f), pi * 0.25f });
         lamps.push_back({ glm::vec3(appCX + appW - 3.0f, 0, appCZ - appH + 3.0f), pi * 0.75f });
         lamps.push_back({ glm::vec3(appCX - appW + 3.0f, 0, appCZ + appH - 3.0f), -pi * 0.25f });

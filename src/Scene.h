@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 #include <cmath>
+#include <algorithm>
 
 // Core
 #include "Shader.h"
@@ -26,6 +27,7 @@
 #include "primitives/Cylinder.h"
 #include "primitives/Sphere.h"
 #include "primitives/Plane.h"
+#include "primitives/Pyramid.h"
 #include "primitives/BezierTube.h"
 #include "primitives/RuledSurface.h"
 
@@ -45,6 +47,8 @@
 #include "zones/Block11Zone.h"
 #include "zones/CrematoryZone.h"
 #include "zones/AdminZone.h"
+#include "zones/TrainSystem.h"
+#include "zones/SoldiersCourtyard.h"
 
 // ================================================================
 // Scene: Central orchestrator for the Auschwitz I reconstruction
@@ -58,6 +62,7 @@ public:
     Cylinder cylinder;
     Sphere sphere;
     Plane plane;
+    Pyramid pyramid;
 
     // ---- Subsystems ----
     DayNightCycle dayNight;
@@ -78,6 +83,8 @@ public:
     Block11Zone block11Zone;
     CrematoryZone crematoryZone;
     AdminZone adminZone;
+    TrainSystem trainSystem;
+    SoldiersCourtyard soldiersCourtyard;
 
     // ---- Lights ----
     DirectionalLight sunLight;
@@ -113,6 +120,7 @@ public:
         cylinder.init(36);
         sphere.init(36, 18);
         plane.init();
+        pyramid.init();
 
         // ---- Load textures ----
         loadTextures();
@@ -122,6 +130,8 @@ public:
         fenceSystem.init();
         crematoryZone.init();
         streetLamps.init();
+        trainSystem.init();
+        soldiersCourtyard.init();
         lsystem.init();
         particles.init();
         horizon.init(texHorizonTrees);
@@ -192,10 +202,12 @@ public:
         groundZone.render(phongShader, I, cube, plane, texGravel, texDirtRoad, texCobblestone, texConcrete);
         barrackGrid.render(phongShader, I, cube, cylinder, plane,
             texBrickRed, texBrickDark, texRoofTile, texConcrete,
-            texWoodPlank, texWoodDark, texGlassAlpha);
-        entranceGate.render(phongShader, I, cube, cylinder, plane,
+            texWoodPlank, texWoodDark, texGlassAlpha,
+            doorOpenAmount, windowOpenAmount);
+        entranceGate.render(phongShader, I, cube, cylinder, plane, pyramid,
             texBrickDark, texBrickRed, texRoofTile, texMetalIron,
             texCobblestone, texWoodDark, texTextArbeit);
+        trainSystem.renderTrack(phongShader, I, cube, texMetalGrey, texWoodPlank);
         fenceSystem.renderPosts(phongShader, I, cylinder, texConcrete);
         guardTowers.render(phongShader, I, cube, cylinder,
             texWoodPlank, texRoofTile, texMetalGrey, texConcrete);
@@ -204,6 +216,9 @@ public:
         crematoryZone.render(phongShader, I, cube, cylinder, plane,
             texBrickDark, texRoofTile, texConcrete, texGravel, texWoodDark);
         adminZone.render(phongShader, I, cube, texBrickRed, texRoofTile);
+        soldiersCourtyard.render(phongShader, I, cube, sphere, plane);
+        trainSystem.renderTrain(phongShader, I, cube, cylinder, sphere,
+            texMetalGrey, texBlackMetal, texWoodPlank, texGlassAlpha);
 
         // Horizon ground extension
         horizon.renderGroundExtension(phongShader, I, plane, texGravel);
@@ -258,8 +273,11 @@ public:
             unlitShader.setBool("useTexture", false);
         }
 
-        // Street lamp bulbs
-        streetLamps.renderBulbs(unlitShader, glm::mat4(1.0f), sphere);
+        // Street lamp bulbs (gray in daytime, warm at night)
+        streetLamps.renderBulbs(unlitShader, glm::mat4(1.0f), sphere,
+            dayNight.isDaytime(), dayNight.lampIntensity);
+        trainSystem.renderHeadlightBulb(unlitShader, glm::mat4(1.0f), sphere,
+            dayNight.isDaytime(), dayNight.lampIntensity);
 
         // Interior bulbs
         interiors.renderBulbs(unlitShader, glm::mat4(1.0f), sphere, *currentCamera);
@@ -278,6 +296,7 @@ public:
         alphaShader.setMat4("view", view);
         alphaShader.setMat4("projection", proj);
         alphaShader.setVec3("viewPos", camera.position);
+        alphaShader.setFloat("objectAlpha", 1.0f);
         glm::vec3 nightAmbient = glm::vec3(0.04f, 0.04f, 0.06f) * dayNight.getNightFactor();
         alphaShader.setVec3("globalAmbient", dayNight.getTopColor() * 0.1f + nightAmbient);
         
@@ -336,8 +355,54 @@ public:
     void update(float deltaTime, const Camera& camera) {
         currentCamera = &camera;
         dayNight.update(deltaTime);
+        soldiersCourtyard.update(deltaTime);
+        trainSystem.update(deltaTime);
         particles.update(deltaTime, dayNight.timeOfDay);
         updateLights();
+        updateAnimation(deltaTime);
+    }
+
+    void toggleSoldierParade() {
+        soldiersCourtyard.toggleParade();
+    }
+
+    bool isSoldierParadeEnabled() const {
+        return soldiersCourtyard.isParadeEnabled();
+    }
+
+    void triggerTrainRun() {
+        trainSystem.triggerRun();
+    }
+
+    void adjustTrainSpeed(float delta) {
+        trainSystem.adjustSpeed(delta);
+    }
+
+    float getTrainSpeed() const {
+        return trainSystem.getSpeed();
+    }
+
+    const char* getTrainStateLabel() const {
+        return trainSystem.getStateLabel();
+    }
+
+    // ---- Animation state for interactive elements ----
+    bool doorOpening = false;
+    bool doorClosing = false;
+    float doorOpenAmount = 0.0f; // 0.0 = closed, 1.0 = fully open (90 degrees)
+    
+    bool windowOpening = false;
+    bool windowClosing = false;
+    float windowOpenAmount = 0.0f; // 0.0 = closed, 1.0 = fully open (0.5m slide)
+
+    void updateAnimation(float deltaTime) {
+        auto step = [&](bool opening, bool closing, float& amt) {
+            if (opening && amt < 1.0f) amt += 1.4f * deltaTime;
+            if (closing && amt > 0.0f) amt -= 1.4f * deltaTime;
+            amt = glm::clamp(amt, 0.0f, 1.0f);
+        };
+        step(doorOpening, doorClosing, doorOpenAmount);
+        step(windowOpening, windowClosing, windowOpenAmount);
     }
 
     // Store window dimensions for shadow pass viewport restore
@@ -346,8 +411,10 @@ public:
 
     void cleanup() {
         cube.cleanup(); cylinder.cleanup(); sphere.cleanup(); plane.cleanup();
+        pyramid.cleanup();
         entranceGate.cleanup(); fenceSystem.cleanup();
         crematoryZone.cleanup(); streetLamps.cleanup();
+        trainSystem.cleanup();
         lsystem.cleanup(); particles.cleanup();
         horizon.cleanup(); hud.cleanup();
         if (skyboxVAO) { glDeleteVertexArrays(1, &skyboxVAO); glDeleteBuffers(1, &skyboxVBO); }
@@ -437,7 +504,7 @@ private:
             towerSpots.push_back(SpotLight(
                 i, glm::vec3(t.x, 7.2f, t.z),
                 glm::vec3(0.0f, -0.8f, 0.0f),   // aim downward
-                glm::vec3(0.03f), glm::vec3(4.0f, 3.8f, 3.0f), glm::vec3(1.0f), // Much brighter
+                glm::vec3(0.035f), glm::vec3(3.8f, 3.6f, 3.0f), glm::vec3(0.9f),
                 1.0f, 0.014f, 0.0007f,
                 20.0f, 28.0f));
         }
@@ -446,8 +513,8 @@ private:
         for (int i = 0; i < streetLamps.getLampCount(); i++) {
             auto data = streetLamps.getLampSpotlight(i);
             SpotLight sl(12 + i, data.position, data.direction,
-                glm::vec3(0.02f), glm::vec3(2.5f, 2.3f, 1.8f), glm::vec3(0.8f), // Much brighter
-                1.0f, 0.045f, 0.0075f, // Reach further
+                glm::vec3(0.015f), glm::vec3(2.0f, 1.85f, 1.5f), glm::vec3(0.45f),
+                1.0f, 0.055f, 0.0105f,
                 35.0f, 45.0f);
             lampSpots.push_back(sl);
         }
@@ -481,12 +548,33 @@ private:
         moonLight.ambient = glm::vec3(0.03f * mi);
         moonLight.diffuse = glm::vec3(0.12f * mi);
         moonLight.specular = glm::vec3(0.05f * mi);
+
+        // Guard tower searchlights sweep at night like real search beams.
+        // During daytime they park in a downward pose.
+        const bool isNight = !dayNight.isDaytime();
+        const float t = dayNight.timeOfDay;
+        for (int i = 0; i < (int)towerSpots.size(); i++) {
+            if (!isNight) {
+                towerSpots[i].direction = glm::normalize(glm::vec3(0.0f, -0.9f, 0.0f));
+                continue;
+            }
+
+            const float base = (t / 24.0f) * glm::two_pi<float>() * 2.0f;
+            const float phase = i * (glm::two_pi<float>() / 12.0f);
+            const float a = base + phase;
+            const float pitch = -0.62f + 0.08f * sinf(base * 0.65f + phase);
+            towerSpots[i].direction = glm::normalize(glm::vec3(
+                cosf(a) * 0.82f,
+                pitch,
+                sinf(a) * 0.82f
+            ));
+        }
     }
 
     void uploadLights(Shader& shader, const Camera& camera,
                       const glm::mat4& view, const glm::mat4& proj) {
         // Base ambient to prevent pitch black + dynamic ambient
-        glm::vec3 nightAmbient = glm::vec3(0.04f, 0.04f, 0.06f) * dayNight.getNightFactor();
+        glm::vec3 nightAmbient = glm::vec3(0.07f, 0.07f, 0.09f) * dayNight.getNightFactor();
         shader.setVec3("globalAmbient", dayNight.getTopColor() * 0.08f + nightAmbient);
 
         // Directional lights
@@ -528,29 +616,39 @@ private:
         }
         shader.setInt("activePointLights", pointIdx);
 
-        // Spot lights — frustum cull lamps
-        glm::mat4 VP = proj * view;
-        lightCuller.extractFrustum(VP);
+        // Spot lights — distance-only culling for lamps.
+        // Keep nearby lamps active regardless of camera frustum so night lighting stays stable.
+        std::vector<std::pair<float, int>> lampDistances;
+        lampDistances.reserve(lampSpots.size());
+        for (int i = 0; i < (int)lampSpots.size(); i++) {
+            const glm::vec3 d = lampSpots[i].position - camera.position;
+            const float distSq = glm::dot(d, d);
+            lampDistances.push_back({ distSq, i });
+        }
+        std::sort(lampDistances.begin(), lampDistances.end(),
+            [](const std::pair<float, int>& a, const std::pair<float, int>& b) {
+                return a.first < b.first;
+            });
 
-        // Collect lamp positions
-        std::vector<glm::vec3> lampPositions;
-        for (const auto& l : lampSpots)
-            lampPositions.push_back(l.position);
-
-        auto visibleLamps = lightCuller.cullLamps(camera.position,
-            lampPositions.data(), (int)lampPositions.size(), 24);
+        std::vector<int> visibleLamps;
+        int keep = std::min((int)lampDistances.size(), 23);
+        visibleLamps.reserve(keep);
+        for (int i = 0; i < keep; i++)
+            visibleLamps.push_back(lampDistances[i].second);
 
         int spotIdx = 0;
-        float li = dayNight.lampIntensity;
+        const bool isNight = !dayNight.isDaytime();
+        float towerIntensity = isNight ? (0.30f + 0.40f * dayNight.lampIntensity) : 0.0f;
+        float lampIntensity = isNight ? (0.05f + 0.55f * dayNight.lampIntensity) : 0.0f;
 
         // Tower spotlights (always active, first 12 slots)
         for (int i = 0; i < (int)towerSpots.size() && spotIdx < 36; i++, spotIdx++) {
             std::string base = "spotLights[" + std::to_string(spotIdx) + "].";
             shader.setVec3(base + "position",   towerSpots[i].position);
             shader.setVec3(base + "direction",  towerSpots[i].direction);
-            shader.setVec3(base + "ambient",    towerSpots[i].ambient * li);
-            shader.setVec3(base + "diffuse",    towerSpots[i].diffuse * li);
-            shader.setVec3(base + "specular",   towerSpots[i].specular * li);
+            shader.setVec3(base + "ambient",    towerSpots[i].ambient * towerIntensity);
+            shader.setVec3(base + "diffuse",    towerSpots[i].diffuse * towerIntensity);
+            shader.setVec3(base + "specular",   towerSpots[i].specular * towerIntensity);
             shader.setFloat(base + "k_c",       towerSpots[i].k_c);
             shader.setFloat(base + "k_l",       towerSpots[i].k_l);
             shader.setFloat(base + "k_q",       towerSpots[i].k_q);
@@ -558,21 +656,42 @@ private:
             shader.setFloat(base + "outerCutOff", towerSpots[i].outerCutOff);
         }
 
-        // Culled lamp spotlights (up to 24)
+        // Culled lamp spotlights (up to 23, one spotlight slot reserved for train headlight)
         for (int vi = 0; vi < (int)visibleLamps.size() && spotIdx < 36; vi++, spotIdx++) {
             int lampIdx = visibleLamps[vi];
             const auto& ls = lampSpots[lampIdx];
             std::string base = "spotLights[" + std::to_string(spotIdx) + "].";
             shader.setVec3(base + "position",   ls.position);
             shader.setVec3(base + "direction",  ls.direction);
-            shader.setVec3(base + "ambient",    ls.ambient * li);
-            shader.setVec3(base + "diffuse",    ls.diffuse * li);
-            shader.setVec3(base + "specular",   ls.specular * li);
+            shader.setVec3(base + "ambient",    ls.ambient * lampIntensity);
+            shader.setVec3(base + "diffuse",    ls.diffuse * lampIntensity);
+            shader.setVec3(base + "specular",   ls.specular * lampIntensity);
             shader.setFloat(base + "k_c",       ls.k_c);
             shader.setFloat(base + "k_l",       ls.k_l);
             shader.setFloat(base + "k_q",       ls.k_q);
             shader.setFloat(base + "cutOff",    ls.cutOff);
             shader.setFloat(base + "outerCutOff", ls.outerCutOff);
+        }
+
+        // Train headlight spotlight
+        if (spotIdx < 36) {
+            auto trainHead = trainSystem.getHeadlightData();
+            std::string base = "spotLights[" + std::to_string(spotIdx) + "].";
+            float trainIntensity = (!dayNight.isDaytime() && trainHead.active)
+                ? (0.25f + 0.95f * dayNight.lampIntensity)
+                : 0.0f;
+
+            shader.setVec3(base + "position", trainHead.position);
+            shader.setVec3(base + "direction", trainHead.direction);
+            shader.setVec3(base + "ambient", glm::vec3(0.02f, 0.02f, 0.02f) * trainIntensity);
+            shader.setVec3(base + "diffuse", glm::vec3(2.4f, 2.2f, 1.7f) * trainIntensity);
+            shader.setVec3(base + "specular", glm::vec3(0.75f) * trainIntensity);
+            shader.setFloat(base + "k_c", 1.0f);
+            shader.setFloat(base + "k_l", 0.05f);
+            shader.setFloat(base + "k_q", 0.009f);
+            shader.setFloat(base + "cutOff", glm::cos(glm::radians(20.0f)));
+            shader.setFloat(base + "outerCutOff", glm::cos(glm::radians(28.0f)));
+            spotIdx++;
         }
 
         // Zero remaining spots

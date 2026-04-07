@@ -80,6 +80,43 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
             isFullscreen = false;
         }
     }
+    if (key == GLFW_KEY_G) {
+        if (scene.doorOpenAmount > 0.5f) {
+            scene.doorOpening = false;
+            scene.doorClosing = true;
+        } else {
+            scene.doorOpening = true;
+            scene.doorClosing = false;
+        }
+    }
+    if (key == GLFW_KEY_K) {
+        if (scene.windowOpenAmount > 0.5f) {
+            scene.windowOpening = false;
+            scene.windowClosing = true;
+        } else {
+            scene.windowOpening = true;
+            scene.windowClosing = false;
+        }
+    }
+    if (key == GLFW_KEY_J) {
+        scene.triggerTrainRun();
+        std::cout << "Train: run triggered (state=" << scene.getTrainStateLabel()
+                  << ", speed=" << scene.getTrainSpeed() << " m/s)" << std::endl;
+    }
+    if (key == GLFW_KEY_U) {
+        scene.adjustTrainSpeed(+2.0f);
+        std::cout << "Train speed: " << scene.getTrainSpeed() << " m/s" << std::endl;
+    }
+    if (key == GLFW_KEY_I) {
+        scene.adjustTrainSpeed(-2.0f);
+        std::cout << "Train speed: " << scene.getTrainSpeed() << " m/s" << std::endl;
+    }
+    if (key == GLFW_KEY_P) {
+        scene.toggleSoldierParade();
+        std::cout << "Soldier parade: "
+                  << (scene.isSoldierParadeEnabled() ? "ON" : "OFF")
+                  << std::endl;
+    }
 }
 
 void processInput(GLFWwindow* window) {
@@ -148,6 +185,11 @@ int main() {
     std::cout << "  H     - Toggle HUD\n";
     std::cout << "  C     - Toggle cursor lock\n";
     std::cout << "  F     - Toggle fullscreen\n";
+    std::cout << "  G     - Toggle doors\n";
+    std::cout << "  K     - Toggle windows\n";
+    std::cout << "  J     - Trigger train pass\n";
+    std::cout << "  U/I   - Train speed +/-\n";
+    std::cout << "  P     - Toggle soldier parade\n";
     std::cout << "  ESC   - Quit\n";
 
     // ---- Main render loop ----

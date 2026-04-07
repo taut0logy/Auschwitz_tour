@@ -62,6 +62,9 @@
     <ClInclude Include="src\primitives\Plane.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\primitives\Pyramid.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="src\lights\PointLight.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -117,6 +120,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\zones\AdminZone.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\zones\TrainSystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\zones\SoldiersCourtyard.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

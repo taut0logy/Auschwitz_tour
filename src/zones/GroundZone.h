@@ -72,14 +72,14 @@ public:
         plane.draw(shader, I, +132.0f, 0.02f, -2.0f, 23.0f, 1.0f, 4.0f, COL_DIRT_ROAD, 4.0f);
         unbind(shader);
 
-        // ---- APPELLPLATZ (Roll-Call Square) ----
-        // Repositioned: Centred at X=+28, Z=0 (between columns +8 and +48)
-        // Dimensions: 55m x 90m
+        // ---- APPELLPLATZ (Roll-Call Square / central courtyard) ----
+        // Centered in camp core at X=+8, Z=0.
+        // Dimensions tuned to remain clear of main circulation strips.
         bindTex(shader, texGravel, 30.0f);
         setMat(shader, 0.22f, 0.92f, 0.02f, 2.0f);
-        // X centred at +28: from +0.5 to +55.5
-        // Z centred at 0: from -45 to +45
-        plane.draw(shader, I, +0.5f, 0.03f, -45.0f, 55.0f, 1.0f, 90.0f,
+        // X centred at +8: from -16 to +32
+        // Z centred at 0: from -41 to +41
+        plane.draw(shader, I, -16.0f, 0.03f, -41.0f, 48.0f, 1.0f, 82.0f,
                    COL_GRAVEL * 0.85f, 2.0f);
         unbind(shader);
     }

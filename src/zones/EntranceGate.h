@@ -14,6 +14,7 @@
 #include "primitives/Cube.h"
 #include "primitives/Cylinder.h"
 #include "primitives/Plane.h"
+#include "primitives/Pyramid.h"
 
 // ================================================================
 // EntranceGate: Gatehouse building, Bezier arch, gate leaves,
@@ -33,19 +34,21 @@ public:
     static constexpr float BUILDING_WIDTH_Z = 18.0f;  // Total Z span
     static constexpr float BUILDING_DEPTH_X = 12.0f;  // X depth
     static constexpr float BUILDING_HEIGHT = 5.5f;
-    static constexpr float TUNNEL_WIDTH = 4.0f;
-    static constexpr float TUNNEL_HEIGHT = 4.2f;
+    static constexpr float TUNNEL_WIDTH = 6.0f;       // Wider for truck access
+    static constexpr float TUNNEL_HEIGHT = 5.0f;       // Taller for truck access
 
     MeshFlyweight archMesh;
     MeshFlyweight textBillboard;
+    Pyramid pyramid;
 
     void init() {
+        pyramid.init();
         buildArchMesh();
         buildTextBillboard();
     }
 
     void render(Shader& shader, const glm::mat4& I,
-                Cube& cube, Cylinder& cyl, Plane& plane,
+                Cube& cube, Cylinder& cyl, Plane& plane, Pyramid& pyramid,
                 unsigned int texBrickDark, unsigned int texBrickRed,
                 unsigned int texRoofTile, unsigned int texMetalIron,
                 unsigned int texCobblestone, unsigned int texWoodDark,
@@ -57,33 +60,36 @@ public:
         // =============================================
         // GATEHOUSE BUILDING
         // 18m wide (Z) × 12m deep (X) × 5.5m tall
-        // Entry tunnel: 4m wide × 4.2m tall at Z = 0
+        // Entry tunnel: 6m wide × 5.0m tall for truck access
         // =============================================
 
         // Building SW corner
         float bldgX = gateX - 6.0f;  // 12m depth, centred at gateX
         float bldgZ = gateZ - 9.0f;  // 18m width
 
-        // South wing (Z = gateZ+2 to gateZ+9)
+        float tunnelW = TUNNEL_WIDTH;  // 6m wide
+        float tunnelH = TUNNEL_HEIGHT; // 5m tall
+
+        // South wing (Z = gateZ+3 to gateZ+9)
         bindTex(shader, texBrickDark, 6.0f);
         setMaterial(shader, COL_BRICK_DARK, 0.08f, 0.65f, 0.03f, 4.0f);
-        cube.draw(shader, I, bldgX, 0.0f, gateZ + 2.0f, 12.0f, 5.5f, 7.0f, COL_BRICK_DARK, 4.0f);
+        cube.draw(shader, I, bldgX, 0.0f, gateZ + 3.0f, 12.0f, 5.5f, 6.0f, COL_BRICK_DARK, 4.0f);
 
-        // North wing (Z = gateZ-9 to gateZ-2)
-        cube.draw(shader, I, bldgX, 0.0f, gateZ - 9.0f, 12.0f, 5.5f, 7.0f, COL_BRICK_DARK, 4.0f);
+        // North wing (Z = gateZ-9 to gateZ-3)
+        cube.draw(shader, I, bldgX, 0.0f, gateZ - 9.0f, 12.0f, 5.5f, 6.0f, COL_BRICK_DARK, 4.0f);
 
-        // Top span over tunnel (4m wide gap, so walls on either side of Z = -2..+2)
-        cube.draw(shader, I, bldgX, 4.2f, gateZ - 2.0f, 12.0f, 1.3f, 4.0f, COL_BRICK_DARK, 4.0f);
+        // Top span over tunnel (6m wide gap, walls on either side of Z = -3..+3)
+        cube.draw(shader, I, bldgX, tunnelH, gateZ - 3.0f, 12.0f, 1.3f, 6.0f, COL_BRICK_DARK, 4.0f);
 
-        // Tunnel walls (sides of the 4m-wide passage)
-        cube.draw(shader, I, bldgX, 0.0f, gateZ - 2.0f, 12.0f, 4.2f, 0.3f, COL_BRICK_DARK, 4.0f);
-        cube.draw(shader, I, bldgX, 0.0f, gateZ + 1.7f, 12.0f, 4.2f, 0.3f, COL_BRICK_DARK, 4.0f);
+        // Tunnel walls (sides of the 6m-wide passage)
+        cube.draw(shader, I, bldgX, 0.0f, gateZ - 3.0f, 12.0f, tunnelH, 0.3f, COL_BRICK_DARK, 4.0f);
+        cube.draw(shader, I, bldgX, 0.0f, gateZ + 2.7f, 12.0f, tunnelH, 0.3f, COL_BRICK_DARK, 4.0f);
         unbind(shader);
 
-        // Tunnel floor (cobblestone)
+        // Tunnel floor (cobblestone) - 6m wide
         bindTex(shader, texCobblestone, 8.0f);
         setMaterial(shader, glm::vec3(0.5f), 0.18f, 0.78f, 0.04f, 8.0f);
-        plane.draw(shader, I, bldgX, 0.01f, gateZ - 1.7f, 12.0f, 1.0f, 3.4f, glm::vec3(0.45f), 8.0f);
+        plane.draw(shader, I, bldgX, 0.01f, gateZ - 2.7f, 12.0f, 1.0f, 5.4f, glm::vec3(0.45f), 8.0f);
         unbind(shader);
 
         // Windows on gatehouse south face (4 windows)
@@ -97,44 +103,77 @@ public:
         unbind(shader);
 
         // =============================================
-        // ROOFS (low hipped roof over each wing)
-        // ridge at Y=7.5m
+        // WING TOPS + PYRAMID CAPS (for flagpole mounts)
+        // Keep a low roof slab, then place one pyramid cap per wing.
         // =============================================
         bindTex(shader, texRoofTile, 8.0f);
         setMaterial(shader, COL_ROOF_TILE, 0.13f, 0.72f, 0.06f, 8.0f);
-        // South wing roof (flat approximation)
-        cube.draw(shader, I, bldgX - 0.5f, 5.5f, gateZ + 1.5f, 13.0f, 0.3f, 8.0f, COL_ROOF_TILE, 8.0f);
-        cube.draw(shader, I, bldgX + 0.5f, 5.8f, gateZ + 2.5f, 11.0f, 0.3f, 6.0f, COL_ROOF_TILE, 8.0f);
-        cube.draw(shader, I, bldgX + 1.5f, 6.1f, gateZ + 3.5f, 9.0f, 0.3f, 4.0f, COL_ROOF_TILE, 8.0f);
-        // North wing roof
-        cube.draw(shader, I, bldgX - 0.5f, 5.5f, gateZ - 9.5f, 13.0f, 0.3f, 8.0f, COL_ROOF_TILE, 8.0f);
-        cube.draw(shader, I, bldgX + 0.5f, 5.8f, gateZ - 8.5f, 11.0f, 0.3f, 6.0f, COL_ROOF_TILE, 8.0f);
-        cube.draw(shader, I, bldgX + 1.5f, 6.1f, gateZ - 7.5f, 9.0f, 0.3f, 4.0f, COL_ROOF_TILE, 8.0f);
+        const float wingRoofBaseY = 5.5f;
+        const float wingRoofSlabH = 0.3f;
+        const float wingRoofTopY = wingRoofBaseY + wingRoofSlabH;
+        const float southWingCenterZ = gateZ + 6.0f;
+        const float northWingCenterZ = gateZ - 6.0f;
+
+        // One slab per wing, aligned to each 6m-deep side wing.
+        cube.draw(shader, I, bldgX - 0.5f, wingRoofBaseY, gateZ + 1.5f, 13.0f, wingRoofSlabH, 8.0f, COL_ROOF_TILE, 8.0f);
+        cube.draw(shader, I, bldgX - 0.5f, wingRoofBaseY, gateZ - 9.5f, 13.0f, wingRoofSlabH, 8.0f, COL_ROOF_TILE, 8.0f);
+
+        // Large side pyramids spanning each top side section.
+        // Use dark brick texture to match the main structure material language.
+        bindTex(shader, texBrickDark, 6.0f);
+        setMaterial(shader, COL_BRICK_DARK, 0.10f, 0.72f, 0.05f, 6.0f);
+        const float wingPyramidCenterX = gateX;
+        const float wingPyramidBaseX = 10.8f;
+        const float wingPyramidBaseZ = 6.8f;
+        const float wingPyramidHeight = 1.85f;
+        pyramid.draw(shader, I,
+            wingPyramidCenterX, wingRoofTopY, southWingCenterZ,
+            wingPyramidBaseX, wingPyramidHeight, wingPyramidBaseZ, COL_BRICK_DARK, 8.0f);
+        pyramid.draw(shader, I,
+            wingPyramidCenterX, wingRoofTopY, northWingCenterZ,
+            wingPyramidBaseX, wingPyramidHeight, wingPyramidBaseZ, COL_BRICK_DARK, 8.0f);
         unbind(shader);
 
         // =============================================
         // GATE ARCH (Bezier) — sits at east face of gatehouse
+        // Wider arch for truck access (6m wide)
         // =============================================
         bindTex(shader, texMetalIron, 2.0f);
         setMaterial(shader, COL_METAL, 0.08f, 0.45f, 0.95f, 96.0f);
 
-        // Left vertical bar
-        cube.draw(shader, I, gateX + 5.5f, 0.0f, gateZ - 1.8f, 0.08f, 3.5f, 0.08f, COL_METAL, 96.0f);
-        // Right vertical bar
-        cube.draw(shader, I, gateX + 5.5f, 0.0f, gateZ + 1.72f, 0.08f, 3.5f, 0.08f, COL_METAL, 96.0f);
+        float archZ = tunnelW * 0.5f; // 3.0m half-width
+        float archTopY = tunnelH + 1.0f; // Top of vertical bars + 1.0m (taller)
 
-        // Horizontal intermediate bars at Y = 1.0, 2.0, 3.0
-        for (float y : {1.0f, 2.0f, 3.0f}) {
-            cube.draw(shader, I, gateX + 5.5f, y, gateZ - 1.8f, 0.06f, 0.06f, 3.6f, COL_METAL, 96.0f);
+        // Left vertical bar
+        cube.draw(shader, I, gateX + 5.5f, 0.0f, gateZ - archZ + 0.1f, 0.08f, archTopY, 0.08f, COL_METAL, 96.0f);
+        // Right vertical bar
+        cube.draw(shader, I, gateX + 5.5f, 0.0f, gateZ + archZ - 0.1f, 0.08f, archTopY, 0.08f, COL_METAL, 96.0f);
+
+        // Horizontal intermediate bars at Y = 1.0, 2.0, 3.0, 4.0
+        for (float y : {1.0f, 2.0f, 3.0f, 4.0f}) {
+            cube.draw(shader, I, gateX + 5.5f, y, gateZ - archZ + 0.1f, 0.06f, 0.06f, tunnelW - 0.2f, COL_METAL, 96.0f);
         }
 
         // Vertical decorative bars (12 evenly spaced)
         for (int i = 1; i <= 12; i++) {
-            float z = gateZ - 1.8f + (float)i * 3.6f / 13.0f;
-            cube.draw(shader, I, gateX + 5.52f, 0.0f, z, 0.03f, 3.5f, 0.03f, COL_METAL, 96.0f);
+            float z = gateZ - archZ + 0.1f + (float)i * (tunnelW - 0.2f) / 13.0f;
+            cube.draw(shader, I, gateX + 5.52f, 0.0f, z, 0.03f, archTopY, 0.03f, COL_METAL, 96.0f);
         }
 
-        // Bezier arch tube
+        // Lower, compact pyramid ornaments on arch top.
+        float pyramidY = archTopY + 0.06f;
+        float pyramidSize = 0.18f;
+        float pyramidHeight = 0.16f;
+        // Left arch top - pyramid
+        pyramid.draw(shader, I, gateX + 5.5f, pyramidY, gateZ - archZ + 0.5f, pyramidSize, pyramidHeight, pyramidSize, COL_METAL, 96.0f);
+        // Center left arch top - pyramid
+        pyramid.draw(shader, I, gateX + 5.5f, pyramidY, gateZ - archZ * 0.33f, pyramidSize, pyramidHeight, pyramidSize, COL_METAL, 96.0f);
+        // Center right arch top - pyramid
+        pyramid.draw(shader, I, gateX + 5.5f, pyramidY, gateZ + archZ * 0.33f, pyramidSize, pyramidHeight, pyramidSize, COL_METAL, 96.0f);
+        // Right arch top - pyramid
+        pyramid.draw(shader, I, gateX + 5.5f, pyramidY, gateZ + archZ - 0.5f, pyramidSize, pyramidHeight, pyramidSize, COL_METAL, 96.0f);
+
+        // Bezier arch tube (removed - replaced by pyramids)
         glm::mat4 archModel = glm::translate(I, glm::vec3(gateX + 5.54f, 0.0f, 0.0f));
         shader.setMat4("model", archModel);
         archMesh.draw();
@@ -158,26 +197,31 @@ public:
 
         // =============================================
         // GATE LEAVES (two panels, rendered open at 90°)
+        // Updated for wider/taller tunnel (6m wide x 5m tall)
         // =============================================
         bindTex(shader, texMetalIron, 3.0f);
         setMaterial(shader, COL_METAL, 0.08f, 0.45f, 0.95f, 96.0f);
+        
+        float gateH = tunnelH - 0.2f; // 4.8m tall
+        float gateW = tunnelW * 0.5f - 0.1f; // ~2.9m half width
+        
         // Left gate leaf (rotated 90° flush with south wall)
-        cube.draw(shader, I, gateX + 5.5f, 0.0f, gateZ - 2.0f, 0.06f, 3.4f, 0.06f, COL_METAL, 96.0f);
-        // Grid members for left leaf (simplified)
-        for (float y : {0.5f, 1.2f, 1.9f, 2.6f}) {
-            cube.draw(shader, I, gateX + 5.5f, y, gateZ - 2.0f - 1.8f, 0.06f, 0.06f, 1.8f, COL_METAL, 96.0f);
+        cube.draw(shader, I, gateX + 5.5f, 0.0f, gateZ - 3.0f, 0.06f, gateH, 0.06f, COL_METAL, 96.0f);
+        // Grid members for left leaf
+        for (float y : {0.8f, 1.6f, 2.4f, 3.2f, 4.0f}) {
+            cube.draw(shader, I, gateX + 5.5f, y, gateZ - 3.0f - gateW, 0.06f, 0.06f, gateW, COL_METAL, 96.0f);
         }
-        for (int i = 0; i < 4; i++) {
-            float z = gateZ - 2.0f - 0.45f * (i + 1);
-            cube.draw(shader, I, gateX + 5.52f, 0.0f, z, 0.04f, 3.4f, 0.04f, COL_METAL, 96.0f);
+        for (int i = 0; i < 6; i++) {
+            float z = gateZ - 3.0f - gateW * 0.35f * (i + 1);
+            cube.draw(shader, I, gateX + 5.52f, 0.0f, z, 0.04f, gateH, 0.04f, COL_METAL, 96.0f);
         }
         // Right gate leaf (mirror)
-        for (float y : {0.5f, 1.2f, 1.9f, 2.6f}) {
-            cube.draw(shader, I, gateX + 5.5f, y, gateZ + 2.0f, 0.06f, 0.06f, 1.8f, COL_METAL, 96.0f);
+        for (float y : {0.8f, 1.6f, 2.4f, 3.2f, 4.0f}) {
+            cube.draw(shader, I, gateX + 5.5f, y, gateZ + 3.0f, 0.06f, 0.06f, gateW, COL_METAL, 96.0f);
         }
-        for (int i = 0; i < 4; i++) {
-            float z = gateZ + 2.0f + 0.45f * (i + 1);
-            cube.draw(shader, I, gateX + 5.52f, 0.0f, z, 0.04f, 3.4f, 0.04f, COL_METAL, 96.0f);
+        for (int i = 0; i < 6; i++) {
+            float z = gateZ + 3.0f + gateW * 0.35f * (i + 1);
+            cube.draw(shader, I, gateX + 5.52f, 0.0f, z, 0.04f, gateH, 0.04f, COL_METAL, 96.0f);
         }
         unbind(shader);
 
@@ -191,12 +235,32 @@ public:
         unbind(shader);
 
         // =============================================
-        // FLAGPOLES (2 steel poles, 8m tall, r = 0.15m)
-        // At X = GATE_X - 3, Z = ±6
+        // FLAGPOLES mounted on top of pyramid caps.
+        // Raise bases so poles no longer intersect gatehouse geometry.
         // =============================================
         setMaterial(shader, COL_METAL, 0.10f, 0.50f, 0.80f, 64.0f);
-        cyl.draw(shader, I, gateX - 3.0f, 0.0f, gateZ + 6.0f, 0.15f, 8.0f, 0.15f, COL_METAL, 64.0f);
-        cyl.draw(shader, I, gateX - 3.0f, 0.0f, gateZ - 6.0f, 0.15f, 8.0f, 0.15f, COL_METAL, 64.0f);
+        const float poleRadius = 0.075f;
+        const float poleHeight = 6.8f;
+        const float poleBaseY = wingRoofTopY + wingPyramidHeight;
+        const float southPoleX = wingPyramidCenterX;
+        const float southPoleZ = southWingCenterZ;
+        const float northPoleX = wingPyramidCenterX;
+        const float northPoleZ = northWingCenterZ;
+        cyl.draw(shader, I,
+            southPoleX - poleRadius, poleBaseY, southPoleZ - poleRadius,
+            poleRadius * 2.0f, poleHeight, poleRadius * 2.0f, COL_METAL, 64.0f);
+        cyl.draw(shader, I,
+            northPoleX - poleRadius, poleBaseY, northPoleZ - poleRadius,
+            poleRadius * 2.0f, poleHeight, poleRadius * 2.0f, COL_METAL, 64.0f);
+
+        // White flag rectangles - attached to flagpoles
+        setMaterial(shader, glm::vec3(1.0f, 1.0f, 1.0f), 0.3f, 0.7f, 0.1f, 4.0f);
+        const float flagY = poleBaseY + poleHeight - 1.4f;
+        const float flagOffsetX = 0.12f;
+        // South flag
+        cube.draw(shader, I, southPoleX + flagOffsetX, flagY, southPoleZ, 0.02f, 1.2f, 1.5f, glm::vec3(1.0f), 4.0f);
+        // North flag
+        cube.draw(shader, I, northPoleX + flagOffsetX, flagY, northPoleZ, 0.02f, 1.2f, 1.5f, glm::vec3(1.0f), 4.0f);
     }
 
     void cleanup() {

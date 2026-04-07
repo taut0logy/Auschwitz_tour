@@ -28,6 +28,7 @@ uniform DirLight  dirLight;
 uniform sampler2D texture1;
 uniform bool      useTexture;
 uniform float     texRepeat;
+uniform float     objectAlpha;
 
 void main()
 {
@@ -35,7 +36,7 @@ void main()
     vec3 V = normalize(viewPos - FragPos);
 
     vec3 matDiff = material.diffuse;
-    float alpha = 1.0;
+    float alpha = objectAlpha;
 
     if (useTexture) {
         vec2 tc = TexCoord * texRepeat;

@@ -54,19 +54,22 @@ public:
         if (timeOfDay >= 24.0f) timeOfDay -= 24.0f;
         if (timeOfDay < 0.0f) timeOfDay += 24.0f;
 
+        // Keep intensity transitions synchronized with simulated time speed.
+        float transitionScale = (timeSpeed <= 0.0f) ? 0.0f : std::max(1.0f, timeSpeed);
+
         // Lamp intensity: smooth fade
         // On at 19.0, off at 6.5
         if (timeOfDay >= 19.0f || timeOfDay < 6.5f) {
-            lampIntensity = std::min(lampIntensity + deltaTime * 0.5f, 1.0f);
+            lampIntensity = std::min(lampIntensity + deltaTime * 0.5f * transitionScale, 1.0f);
         } else {
-            lampIntensity = std::max(lampIntensity - deltaTime * 0.5f, 0.0f);
+            lampIntensity = std::max(lampIntensity - deltaTime * 0.5f * transitionScale, 0.0f);
         }
 
         // Star visibility
         if (timeOfDay >= 20.0f || timeOfDay < 5.5f) {
-            starAlpha = std::min(starAlpha + deltaTime * 0.3f, 1.0f);
+            starAlpha = std::min(starAlpha + deltaTime * 0.3f * transitionScale, 1.0f);
         } else {
-            starAlpha = std::max(starAlpha - deltaTime * 0.3f, 0.0f);
+            starAlpha = std::max(starAlpha - deltaTime * 0.3f * transitionScale, 0.0f);
         }
 
         // Update fog color from horizon keyframe

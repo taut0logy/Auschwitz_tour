@@ -45,7 +45,8 @@ public:
                 unsigned int texBrickRed, unsigned int texBrickDark,
                 unsigned int texRoofTile, unsigned int texConcrete,
                 unsigned int texWoodPlank, unsigned int texWoodDark,
-                unsigned int texGlassAlpha) const
+                unsigned int texGlassAlpha,
+                float doorOpenAmt = 0.0f, float windowOpenAmt = 0.0f) const
     {
         for (int row = 0; row < 4; row++) {
             for (int col = 0; col < 6; col++) {
@@ -62,7 +63,8 @@ public:
                 renderBlockExterior(shader, I, cube, cyl, plane,
                     bx, bz, isDark, blockNum,
                     texBrickRed, texBrickDark, texRoofTile,
-                    texConcrete, texWoodPlank, texWoodDark, texGlassAlpha);
+                    texConcrete, texWoodPlank, texWoodDark, texGlassAlpha,
+                    doorOpenAmt, windowOpenAmt);
             }
         }
     }
@@ -103,7 +105,8 @@ private:
         float bx, float bz, bool isDark, int blockNum,
         unsigned int texBrickRed, unsigned int texBrickDark, unsigned int texRoofTile,
         unsigned int texConcrete, unsigned int texWoodPlank, unsigned int texWoodDark,
-        unsigned int texGlassAlpha) const
+        unsigned int texGlassAlpha,
+        float doorOpenAmt = 0.0f, float windowOpenAmt = 0.0f) const
     {
         glm::vec3 wallCol = isDark ? COL_BRICK_DARK : COL_BRICK_RED;
         unsigned int wallTex = isDark ? texBrickDark : texBrickRed;
@@ -298,6 +301,27 @@ private:
                         cyl.draw(shader, I, barX - 0.015f, winY, nZ + frameD * 0.5f, 0.03f, winH, 0.03f, glm::vec3(0.3f), 32.0f);
                     }
                 }
+
+                // Sliding glass panes (animated)
+                // Glass windows slide horizontally in the plane of the wall (X direction)
+                // Slightly thinner than wall (0.15m) so surfaces don't overlap
+                // Positioned closer to exterior (south face: near bz, north face: near bz + BLOCK_WID)
+                float slideX = windowOpenAmt * 0.5f; // Max 0.5m slide horizontally
+                float winThick = 0.15f;
+                bindTex(shader, texGlassAlpha, 1.0f);
+                shader.setVec3("material.ambient", glm::vec3(0.15f, 0.18f, 0.22f) * 0.3f);
+                shader.setVec3("material.diffuse", glm::vec3(0.15f, 0.18f, 0.22f) * 0.6f);
+                shader.setVec3("material.specular", glm::vec3(0.4f));
+                shader.setFloat("material.shininess", 64.0f);
+                shader.setVec3("material.emissive", glm::vec3(0.0f));
+
+                // South face: slide left into opening, positioned near exterior (bz + 0.03f)
+                cube.draw(shader, I, bx + winLocalX - slideX, winY, bz + 0.03f,
+                          winW - 0.04f, winH - 0.04f, winThick, glm::vec3(0.15f, 0.18f, 0.22f), 32.0f);
+                // North face: slide right into opening, positioned near exterior (bz + BLOCK_WID - 0.03f - winThick)
+                cube.draw(shader, I, bx + winLocalX + slideX, winY, bz + BLOCK_WID - 0.03f - winThick,
+                          winW - 0.04f, winH - 0.04f, winThick, glm::vec3(0.15f, 0.18f, 0.22f), 32.0f);
+                unbind(shader);
             }
         }
 
@@ -317,16 +341,29 @@ private:
         // =============================================
         // 5. Doors (1 per gable end, ground floor)
         // 1.2m wide × 2.2m tall, centred on wall
+        // Animated: rotate around Y-axis based on doorOpenAmt
+        // Door placed at wall surface with thickness matching wall
         // =============================================
         bindTex(shader, texWoodDark, 2.0f);
         float doorZ = bz + BLOCK_WID * 0.5f - doorW * 0.5f;
+        float doorAngle = doorOpenAmt * 90.0f; // Max 90 degrees
+        float doorThick = thick; // Door thickness matches wall
 
-        // West gable door
-        cube.draw(shader, I, bx - protrude, 0.0f, doorZ, frameD, doorH, doorW, COL_WOOD_DARK, 6.0f);
-        // East gable door
-        cube.draw(shader, I, bx + BLOCK_LEN - thick - protrude, 0.0f, doorZ, frameD, doorH, doorW, COL_WOOD_DARK, 6.0f);
+        // West gable door - hinge at outer wall edge, swings outward (negative X)
+        {
+            glm::mat4 doorM = glm::translate(I, glm::vec3(bx, 0.0f, doorZ));
+            doorM = glm::rotate(doorM, glm::radians(doorAngle), glm::vec3(0.0f, 1.0f, 0.0f));
+            cube.draw(shader, doorM, 0.0f, 0.0f, 0.0f, doorThick, doorH, doorW, COL_WOOD_DARK, 6.0f);
+        }
 
-        // Door frames
+        // East gable door - hinge at outer wall edge, swings outward (positive X)
+        {
+            glm::mat4 doorM = glm::translate(I, glm::vec3(bx + BLOCK_LEN - thick, 0.0f, doorZ));
+            doorM = glm::rotate(doorM, glm::radians(-doorAngle), glm::vec3(0.0f, 1.0f, 0.0f));
+            cube.draw(shader, doorM, -doorThick, 0.0f, 0.0f, doorThick, doorH, doorW, COL_WOOD_DARK, 6.0f);
+        }
+
+        // Door frames (static)
         cube.draw(shader, I, bx - protrude - 0.02f, doorH, doorZ - 0.1f, frameD + 0.04f, 0.1f, doorW + 0.2f, COL_WOOD_DARK, 6.0f);
         cube.draw(shader, I, bx + BLOCK_LEN - thick - protrude - 0.02f, doorH, doorZ - 0.1f, frameD + 0.04f, 0.1f, doorW + 0.2f, COL_WOOD_DARK, 6.0f);
         unbind(shader);

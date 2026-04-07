@@ -160,6 +160,7 @@
     <ClInclude Include="src\primitives\Cylinder.h" />
     <ClInclude Include="src\primitives\Sphere.h" />
     <ClInclude Include="src\primitives\Plane.h" />
+    <ClInclude Include="src\primitives\Pyramid.h" />
     <ClInclude Include="src\primitives\BezierTube.h" />
     <ClInclude Include="src\primitives\RuledSurface.h" />
     <ClInclude Include="src\lights\PointLight.h" />
@@ -175,6 +176,8 @@
     <ClInclude Include="src\zones\Block11Zone.h" />
     <ClInclude Include="src\zones\CrematoryZone.h" />
     <ClInclude Include="src\zones\AdminZone.h" />
+    <ClInclude Include="src\zones\TrainSystem.h" />
+    <ClInclude Include="src\zones\SoldiersCourtyard.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="textures\bark.png" />

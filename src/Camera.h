@@ -31,10 +31,10 @@ public:
     float sensitivity;
     float fov;
 
-    // Boundary limits (v2 spec)
-    float minX = -138.0f, maxX = 138.0f;
-    float minY = 1.5f,    maxY = 12.0f;
-    float minZ = -98.0f,  maxZ = 98.0f;
+    // Expanded boundary limits for freer exploration toward horizon.
+    float minX = -340.0f, maxX = 340.0f;
+    float minY = 1.5f,    maxY = 48.0f;
+    float minZ = -260.0f, maxZ = 260.0f;
 
     Camera(glm::vec3 pos = glm::vec3(150.0f, 1.7f, 0.0f),
            float yawVal = 180.0f, float pitchVal = 0.0f)

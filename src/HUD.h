@@ -21,7 +21,7 @@ public:
     GLuint fontTexture = 0;
     GLuint quadVAO = 0, quadVBO = 0;
     Shader* hudShader = nullptr;
-    bool visible = false;
+    bool visible = true; // HUD visible by default
 
     void init() {
         generateFontTexture();
@@ -282,7 +282,8 @@ private:
             for (int py = 0; py < 8; py++) {
                 unsigned char rowBits = font8x8_basic[charIdx][py];
                 for (int px = 0; px < 8; px++) {
-                    bool lit = (rowBits >> (7 - px)) & 1;
+                    // font8x8 stores pixels LSB->MSB left-to-right
+                    bool lit = (rowBits >> px) & 1;
                     int texX = col * 8 + px;
                     int texY = row * 8 + py;
                     int idx = (texY * texW + texX) * 4;

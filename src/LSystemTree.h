@@ -9,6 +9,7 @@
 #include <stack>
 #include <string>
 #include <cmath>
+#include <cstdint>
 #include "Shader.h"
 
 // ================================================================
@@ -124,6 +125,15 @@ private:
         float radius;
     };
 
+    static float hash01(uint32_t n) {
+        n ^= 2747636419u;
+        n *= 2654435769u;
+        n ^= n >> 16;
+        n *= 2654435769u;
+        n ^= n >> 16;
+        return (float)(n & 0x00FFFFFFu) / 16777215.0f;
+    }
+
     void generateGeometry(const std::string& sentence) {
         std::vector<float> branchVerts;
         std::vector<float> leafVerts;
@@ -136,27 +146,50 @@ private:
         turtle.radius = INIT_RADIUS;
 
         std::stack<TurtleState> stateStack;
+        int turnCounter = 0;
+        int branchCounter = 0;
 
         for (char c : sentence) {
             if (c == 'F') {
                 // Draw a branch segment
-                glm::vec3 endPos = turtle.pos + turtle.dir * INIT_LENGTH;
+                float radiusRatio = glm::clamp(turtle.radius / INIT_RADIUS, 0.12f, 1.0f);
+                float segLength = INIT_LENGTH * (0.40f + 0.60f * radiusRatio);
+                glm::vec3 endPos = turtle.pos + turtle.dir * segLength;
                 addCylinder(branchVerts, turtle.pos, endPos, turtle.radius);
                 turtle.pos = endPos;
             }
             else if (c == '+') {
-                // Pitch up (rotate around local up/Z axis)
-                float rad = glm::radians(ANGLE + (rand() % 10 - 5));
-                glm::mat4 rot = glm::rotate(glm::mat4(1.0f), rad, turtle.up);
-                turtle.dir = glm::normalize(glm::vec3(rot * glm::vec4(turtle.dir, 0.0f)));
-                turtle.right = glm::normalize(glm::vec3(rot * glm::vec4(turtle.right, 0.0f)));
+                // Deterministic turn with small jitter for even but natural spread.
+                float jitter = (hash01((uint32_t)(turnCounter + 17)) - 0.5f) * 8.0f;
+                float primary = glm::radians(ANGLE + jitter);
+                float secondary = glm::radians((hash01((uint32_t)(turnCounter + 911)) - 0.5f) * 10.0f);
+                turnCounter++;
+
+                glm::mat4 r1 = glm::rotate(glm::mat4(1.0f), primary, turtle.up);
+                turtle.dir = glm::normalize(glm::vec3(r1 * glm::vec4(turtle.dir, 0.0f)));
+                turtle.right = glm::normalize(glm::vec3(r1 * glm::vec4(turtle.right, 0.0f)));
+
+                glm::mat4 r2 = glm::rotate(glm::mat4(1.0f), secondary, turtle.right);
+                turtle.dir = glm::normalize(glm::vec3(r2 * glm::vec4(turtle.dir, 0.0f)));
+                turtle.up = glm::normalize(glm::vec3(r2 * glm::vec4(turtle.up, 0.0f)));
+                turtle.right = glm::normalize(glm::cross(turtle.up, turtle.dir));
+                turtle.up = glm::normalize(glm::cross(turtle.dir, turtle.right));
             }
             else if (c == '-') {
-                // Pitch down
-                float rad = glm::radians(-ANGLE + (rand() % 10 - 5));
-                glm::mat4 rot = glm::rotate(glm::mat4(1.0f), rad, turtle.up);
-                turtle.dir = glm::normalize(glm::vec3(rot * glm::vec4(turtle.dir, 0.0f)));
-                turtle.right = glm::normalize(glm::vec3(rot * glm::vec4(turtle.right, 0.0f)));
+                float jitter = (hash01((uint32_t)(turnCounter + 29)) - 0.5f) * 8.0f;
+                float primary = glm::radians(-ANGLE + jitter);
+                float secondary = glm::radians((hash01((uint32_t)(turnCounter + 1237)) - 0.5f) * 10.0f);
+                turnCounter++;
+
+                glm::mat4 r1 = glm::rotate(glm::mat4(1.0f), primary, turtle.up);
+                turtle.dir = glm::normalize(glm::vec3(r1 * glm::vec4(turtle.dir, 0.0f)));
+                turtle.right = glm::normalize(glm::vec3(r1 * glm::vec4(turtle.right, 0.0f)));
+
+                glm::mat4 r2 = glm::rotate(glm::mat4(1.0f), secondary, turtle.right);
+                turtle.dir = glm::normalize(glm::vec3(r2 * glm::vec4(turtle.dir, 0.0f)));
+                turtle.up = glm::normalize(glm::vec3(r2 * glm::vec4(turtle.up, 0.0f)));
+                turtle.right = glm::normalize(glm::cross(turtle.up, turtle.dir));
+                turtle.up = glm::normalize(glm::cross(turtle.dir, turtle.right));
             }
             else if (c == '[') {
                 stateStack.push(turtle);
@@ -164,11 +197,21 @@ private:
                 turtle.radius *= 0.65f;
                 if (turtle.radius < 0.02f) turtle.radius = 0.02f;
 
-                // 3D random roll to scatter branches naturally in 3D
-                float roll = glm::radians((float)(rand() % 360));
-                glm::mat4 rot = glm::rotate(glm::mat4(1.0f), roll, turtle.dir);
-                turtle.right = glm::normalize(glm::vec3(rot * glm::vec4(turtle.right, 0.0f)));
-                turtle.up = glm::normalize(glm::vec3(rot * glm::vec4(turtle.up, 0.0f)));
+                // Use a golden-angle roll for evenly distributed radial branching.
+                float rollDeg = fmodf(137.50776f * (float)(branchCounter + 1), 360.0f);
+                float roll = glm::radians(rollDeg);
+                glm::mat4 rotRoll = glm::rotate(glm::mat4(1.0f), roll, turtle.dir);
+                turtle.right = glm::normalize(glm::vec3(rotRoll * glm::vec4(turtle.right, 0.0f)));
+                turtle.up = glm::normalize(glm::vec3(rotRoll * glm::vec4(turtle.up, 0.0f)));
+
+                // Small deterministic upward bias so crowns spread instead of collapsing.
+                float liftDeg = 10.0f + 10.0f * hash01((uint32_t)(branchCounter + 431));
+                glm::mat4 rotLift = glm::rotate(glm::mat4(1.0f), glm::radians(liftDeg), turtle.right);
+                turtle.dir = glm::normalize(glm::vec3(rotLift * glm::vec4(turtle.dir, 0.0f)));
+                turtle.up = glm::normalize(glm::vec3(rotLift * glm::vec4(turtle.up, 0.0f)));
+                turtle.right = glm::normalize(glm::cross(turtle.up, turtle.dir));
+                turtle.up = glm::normalize(glm::cross(turtle.dir, turtle.right));
+                branchCounter++;
             }
             else if (c == ']') {
                 if (!stateStack.empty()) {
@@ -259,35 +302,42 @@ private:
     void addLeaves(std::vector<float>& verts,
                    const glm::vec3& pos, const glm::vec3& dir, const glm::vec3& rightAxis) const
     {
-        // Draw 4 leaves per bud (X), bent beautifully outward and oriented vertically.
-        // leaf_alpha.png is a single vertical leaf with the stem at the bottom (V=0).
-        float leafW = 0.8f;
-        float leafL = 1.2f;
-        
-        for (int i = 0; i < 4; ++i) {
-            // Spin each leaf around the branch tip
-            float angle = glm::radians(i * 90.0f + (rand() % 30));
-            glm::mat4 rot = glm::rotate(glm::mat4(1.0f), angle, dir);
-            glm::vec3 localRight = glm::normalize(glm::vec3(rot * glm::vec4(rightAxis, 0.0f)));
-            
-            // Bend outward
-            glm::mat4 bend = glm::rotate(glm::mat4(1.0f), glm::radians(55.0f), localRight);
-            glm::vec3 leafDir = glm::normalize(glm::vec3(bend * glm::vec4(dir, 0.0f)));
-            
-            // Generate Quad vertices starting from stem
-            glm::vec3 p0 = pos - localRight * (leafW * 0.5f);
-            glm::vec3 p1 = pos + localRight * (leafW * 0.5f);
+        // Build an even radial leaf cluster at each bud.
+        // Texture is a single upright leaf with stem at V=0, so each quad grows from base -> tip.
+        const int leavesPerBud = 6;
+        const float leafW = 0.24f;
+        const float leafL = 0.58f;
+
+        glm::vec3 stem = glm::normalize(dir);
+        glm::vec3 refUp = (fabsf(stem.y) < 0.95f) ? glm::vec3(0, 1, 0) : glm::vec3(1, 0, 0);
+        glm::vec3 tangent = glm::normalize(glm::cross(refUp, stem));
+        glm::vec3 bitangent = glm::normalize(glm::cross(stem, tangent));
+
+        if (glm::length(tangent) < 0.001f) tangent = glm::normalize(rightAxis);
+        if (glm::length(bitangent) < 0.001f) bitangent = glm::normalize(glm::cross(stem, tangent));
+
+        for (int i = 0; i < leavesPerBud; ++i) {
+            float a = glm::two_pi<float>() * ((float)i / (float)leavesPerBud);
+            glm::vec3 radial = glm::normalize(cosf(a) * tangent + sinf(a) * bitangent);
+
+            // Tilt leaves outward while still following branch direction.
+            glm::vec3 leafDir = glm::normalize(stem * 0.78f + radial * 0.62f);
+            glm::vec3 leafRight = glm::normalize(glm::cross(leafDir, radial));
+            if (glm::length(leafRight) < 0.001f) leafRight = tangent;
+
+            glm::vec3 base = pos + radial * 0.045f + stem * 0.02f;
+            glm::vec3 p0 = base - leafRight * (leafW * 0.5f);
+            glm::vec3 p1 = base + leafRight * (leafW * 0.5f);
             glm::vec3 p2 = p1 + leafDir * leafL;
             glm::vec3 p3 = p0 + leafDir * leafL;
-            
-            glm::vec3 n = glm::normalize(glm::cross(localRight, leafDir));
-            
-            // V=0 at the stem base, V=1 at the leaf tip. 
-            // Tri 1
+
+            glm::vec3 n = glm::normalize(glm::cross(leafRight, leafDir));
+
+            // V=0 = leaf stem, V=1 = leaf tip.
             verts.insert(verts.end(), {p0.x,p0.y,p0.z, n.x,n.y,n.z, 0,0});
             verts.insert(verts.end(), {p1.x,p1.y,p1.z, n.x,n.y,n.z, 1,0});
             verts.insert(verts.end(), {p2.x,p2.y,p2.z, n.x,n.y,n.z, 1,1});
-            // Tri 2
+
             verts.insert(verts.end(), {p2.x,p2.y,p2.z, n.x,n.y,n.z, 1,1});
             verts.insert(verts.end(), {p3.x,p3.y,p3.z, n.x,n.y,n.z, 0,1});
             verts.insert(verts.end(), {p0.x,p0.y,p0.z, n.x,n.y,n.z, 0,0});

@@ -105,14 +105,16 @@ public:
         if (fogAlpha < 0.01f) return;
 
         alphaShader.setBool("useTexture", false);
-        alphaShader.setVec3("material.ambient", glm::vec3(0.0f));
-        alphaShader.setVec3("material.diffuse", glm::vec3(0.0f));
+        alphaShader.setFloat("objectAlpha", fogAlpha);
+        alphaShader.setVec3("material.ambient", glm::vec3(0.06f, 0.06f, 0.07f));
+        alphaShader.setVec3("material.diffuse", glm::vec3(0.18f, 0.18f, 0.20f));
         alphaShader.setVec3("material.specular", glm::vec3(0.0f));
-        alphaShader.setVec3("material.emissive", glm::vec3(0.6f, 0.6f, 0.65f) * fogAlpha);
+        alphaShader.setVec3("material.emissive", glm::vec3(0.0f));
         alphaShader.setFloat("material.shininess", 1.0f);
 
         cube.draw(alphaShader, I, -200.0f, 0.3f, -150.0f, 400.0f, 0.02f, 300.0f,
                   glm::vec3(0.7f, 0.7f, 0.75f), 1.0f);
+        alphaShader.setFloat("objectAlpha", 1.0f);
     }
 
     void cleanup() {
