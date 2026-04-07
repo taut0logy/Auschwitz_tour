@@ -82,7 +82,7 @@ public:
     // ---- Lights ----
     DirectionalLight sunLight;
     DirectionalLight moonLight;
-    std::vector<PointLight> pointLights;
+    std::vector<PointLight> interiorLights;
     std::vector<SpotLight> towerSpots;
     std::vector<SpotLight> lampSpots;
 
@@ -245,9 +245,17 @@ public:
         // Moon
         if (dayNight.getMoonIntensity() > 0.01f) {
             glm::vec3 moonPos = dayNight.getMoonPosition();
+            unlitShader.setBool("useTexture", true);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, texMoon);
+            unlitShader.setInt("texture1", 0);
+            
+            // Draw a much larger moon (e.g. radius 20m means scale 40, offset 20)
             sphere.drawEmissive(unlitShader, glm::mat4(1.0f),
-                moonPos.x - 4, moonPos.y - 4, moonPos.z - 4,
-                8, 8, 8, glm::vec3(0.8f, 0.82f, 0.9f));
+                moonPos.x - 20.0f, moonPos.y - 20.0f, moonPos.z - 20.0f,
+                40.0f, 40.0f, 40.0f, glm::vec3(0.9f, 0.95f, 1.0f) * 1.5f);
+                
+            unlitShader.setBool("useTexture", false);
         }
 
         // Street lamp bulbs
@@ -270,12 +278,23 @@ public:
         alphaShader.setMat4("view", view);
         alphaShader.setMat4("projection", proj);
         alphaShader.setVec3("viewPos", camera.position);
-        alphaShader.setVec3("globalAmbient", dayNight.getTopColor() * 0.1f);
-        alphaShader.setVec3("dirLight.direction", dayNight.getSunDirection());
+        glm::vec3 nightAmbient = glm::vec3(0.04f, 0.04f, 0.06f) * dayNight.getNightFactor();
+        alphaShader.setVec3("globalAmbient", dayNight.getTopColor() * 0.1f + nightAmbient);
+        
         float si = dayNight.getSunIntensity();
-        alphaShader.setVec3("dirLight.ambient", glm::vec3(0.2f * si));
-        alphaShader.setVec3("dirLight.diffuse", glm::vec3(0.8f * si));
-        alphaShader.setVec3("dirLight.specular", glm::vec3(0.3f * si));
+        float mi = dayNight.getMoonIntensity();
+        if (si > mi) {
+            alphaShader.setVec3("dirLight.direction", dayNight.getSunDirection());
+            alphaShader.setVec3("dirLight.ambient", glm::vec3(0.2f * si));
+            alphaShader.setVec3("dirLight.diffuse", glm::vec3(0.8f * si));
+            alphaShader.setVec3("dirLight.specular", glm::vec3(0.3f * si));
+        } else {
+            alphaShader.setVec3("dirLight.direction", dayNight.getMoonDirection());
+            alphaShader.setVec3("dirLight.ambient", glm::vec3(0.05f * mi));
+            alphaShader.setVec3("dirLight.diffuse", glm::vec3(0.2f * mi));
+            alphaShader.setVec3("dirLight.specular", glm::vec3(0.05f * mi));
+        }
+        
         alphaShader.setFloat("texRepeat", 1.0f);
 
         // Tree leaves
@@ -418,7 +437,7 @@ private:
             towerSpots.push_back(SpotLight(
                 i, glm::vec3(t.x, 7.2f, t.z),
                 glm::vec3(0.0f, -0.8f, 0.0f),   // aim downward
-                glm::vec3(0.03f), glm::vec3(0.7f, 0.65f, 0.5f), glm::vec3(0.4f),
+                glm::vec3(0.03f), glm::vec3(4.0f, 3.8f, 3.0f), glm::vec3(1.0f), // Much brighter
                 1.0f, 0.014f, 0.0007f,
                 20.0f, 28.0f));
         }
@@ -427,10 +446,25 @@ private:
         for (int i = 0; i < streetLamps.getLampCount(); i++) {
             auto data = streetLamps.getLampSpotlight(i);
             SpotLight sl(12 + i, data.position, data.direction,
-                glm::vec3(0.02f), glm::vec3(0.6f, 0.55f, 0.35f), glm::vec3(0.2f),
-                1.0f, 0.09f, 0.032f,
+                glm::vec3(0.02f), glm::vec3(2.5f, 2.3f, 1.8f), glm::vec3(0.8f), // Much brighter
+                1.0f, 0.045f, 0.0075f, // Reach further
                 35.0f, 45.0f);
             lampSpots.push_back(sl);
+        }
+
+        // Interior point lights
+        for (int blockNum = 1; blockNum <= 24; blockNum++) {
+            glm::vec3 sw = BarrackGrid::getBlockSW(blockNum);
+            for (float lx : {8.0f, 16.0f, 24.0f, 32.0f}) {
+                glm::vec3 pos = glm::vec3(sw.x + lx, 6.8f, sw.z + 5.5f);
+                interiorLights.push_back(PointLight(
+                    0, pos,
+                    glm::vec3(0.1f), // ambient
+                    glm::vec3(2.5f, 2.2f, 1.5f), // diffuse (warm, bright)
+                    glm::vec3(0.5f), // specular
+                    1.0f, 0.09f, 0.032f // attenuation (~50m range)
+                ));
+            }
         }
     }
 
@@ -451,7 +485,9 @@ private:
 
     void uploadLights(Shader& shader, const Camera& camera,
                       const glm::mat4& view, const glm::mat4& proj) {
-        shader.setVec3("globalAmbient", dayNight.getTopColor() * 0.08f);
+        // Base ambient to prevent pitch black + dynamic ambient
+        glm::vec3 nightAmbient = glm::vec3(0.04f, 0.04f, 0.06f) * dayNight.getNightFactor();
+        shader.setVec3("globalAmbient", dayNight.getTopColor() * 0.08f + nightAmbient);
 
         // Directional lights
         shader.setVec3("dirLights[0].direction", sunLight.direction);
@@ -464,8 +500,33 @@ private:
         shader.setVec3("dirLights[1].diffuse", moonLight.diffuse);
         shader.setVec3("dirLights[1].specular", moonLight.specular);
 
-        // Point lights (simplified: zero them out for now)
-        shader.setInt("activePointLights", 0);
+        // Point lights (interior lighting)
+        std::vector<glm::vec3> interiorPos;
+        for (const auto& l : interiorLights) interiorPos.push_back(l.position);
+
+        auto visibleInteriors = lightCuller.cullLamps(camera.position,
+            interiorPos.data(), (int)interiorPos.size(), 32); // Max 32 point lights
+
+        int pointIdx = 0;
+        for (int vi = 0; vi < (int)visibleInteriors.size() && pointIdx < 32; vi++, pointIdx++) {
+            int lampIdx = visibleInteriors[vi];
+            const auto& pl = interiorLights[lampIdx];
+            std::string base = "pointLights[" + std::to_string(pointIdx) + "].";
+            shader.setVec3(base + "position",   pl.position);
+            shader.setVec3(base + "ambient",    pl.ambient * dayNight.lampIntensity);
+            shader.setVec3(base + "diffuse",    pl.diffuse * dayNight.lampIntensity);
+            shader.setVec3(base + "specular",   pl.specular * dayNight.lampIntensity);
+            shader.setFloat(base + "k_c",       pl.k_c);
+            shader.setFloat(base + "k_l",       pl.k_l);
+            shader.setFloat(base + "k_q",       pl.k_q);
+        }
+        for (; pointIdx < 32; pointIdx++) {
+            std::string base = "pointLights[" + std::to_string(pointIdx) + "].";
+            shader.setVec3(base + "ambient", glm::vec3(0));
+            shader.setVec3(base + "diffuse", glm::vec3(0));
+            shader.setVec3(base + "specular", glm::vec3(0));
+        }
+        shader.setInt("activePointLights", pointIdx);
 
         // Spot lights — frustum cull lamps
         glm::mat4 VP = proj * view;
