@@ -52,11 +52,11 @@ public:
         plane.draw(shader, I, -130.0f, 0.02f, +70.0f, 290.0f, 1.0f, 6.0f, COL_DIRT_ROAD, 4.0f);
 
         // ---- INTER-COLUMN ROADS (E-W, between column pairs) ----
-        // Column X-centres: -112, -64, -16, +32, +80, +112, +128
-        // Roads at gaps: between -112/-64, -64/-16, -16/+32, +32/+80, +80/+112, +112/+128
-        // Gap sizes: 48m, 48m, 48m, 48m, 32m, 16m (last gaps smaller)
-        float colGaps[] = { -88.0f, -40.0f, +8.0f, +56.0f, +96.0f, +120.0f };
-        for (int i = 0; i < 6; i++) {
+        // Column X-centres: -112, -64, -16, +32, +80, +128
+        // Roads at gaps: between -112/-64, -64/-16, -16/+32, +32/+80, +80/+128
+        // Gap sizes: 48m everywhere
+        float colGaps[] = { -88.0f, -40.0f, +8.0f, +56.0f, +104.0f };
+        for (int i = 0; i < 5; i++) {
             float rx = colGaps[i] - 4.0f; // road 8m wide, centred at gap
             // Extended Z range to cover all 4 rows with 12m width each
             // Z from -72 (south of -54) to +72 (north of +54)

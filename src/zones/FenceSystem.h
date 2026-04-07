@@ -22,8 +22,8 @@ public:
 
     // Inner fence: X = ±133, Z = ±93
     // Outer fence: X = ±135, Z = ±95
-    static constexpr float INNER_X = 133.0f, INNER_Z = 93.0f;
-    static constexpr float OUTER_X = 135.0f, OUTER_Z = 95.0f;
+    static constexpr float INNER_X = 160.0f, INNER_Z = 93.0f;
+    static constexpr float OUTER_X = 162.0f, OUTER_Z = 95.0f;
     static constexpr float POST_SPACING = 3.5f;
     static constexpr float POST_RADIUS = 0.06f;  // 0.12m diameter
     static constexpr float POST_HEIGHT = 2.8f;

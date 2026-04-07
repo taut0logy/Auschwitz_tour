@@ -29,7 +29,7 @@ public:
     // Col 0 at -112 spans -132 to -92
     // Col 1 at -64 spans -84 to -44 (8m gap from col 0)
     // Col 6 at +128 spans +108 to +148, gate at +155 leaves 7m clearance
-    static constexpr float COL_X[7] = { -112.0f, -64.0f, -16.0f, +32.0f, +80.0f, +112.0f, +128.0f };
+    static constexpr float COL_X[6] = { -112.0f, -64.0f, -16.0f, +32.0f, +80.0f, +128.0f };
     // Row Z-centres with proper spacing for 12m wide blocks + 24m gaps
     static constexpr float ROW_Z[4] = { -54.0f, -18.0f, +18.0f, +54.0f };
 
@@ -48,8 +48,8 @@ public:
                 unsigned int texGlassAlpha) const
     {
         for (int row = 0; row < 4; row++) {
-            for (int col = 0; col < 7; col++) {
-                int blockNum = row * 7 + col + 1;
+            for (int col = 0; col < 6; col++) {
+                int blockNum = row * 6 + col + 1;
                 float cx = COL_X[col];    // block centre X
                 float cz = ROW_Z[row];    // block centre Z
 
@@ -67,11 +67,11 @@ public:
         }
     }
 
-    // Get block centre position for a given block number (1-28)
+    // Get block centre position for a given block number (1-24)
     static glm::vec3 getBlockCentre(int blockNum) {
         int idx = blockNum - 1;
-        int row = idx / 7;
-        int col = idx % 7;
+        int row = idx / 6;
+        int col = idx % 6;
         return glm::vec3(COL_X[col], 0.0f, ROW_Z[row]);
     }
 

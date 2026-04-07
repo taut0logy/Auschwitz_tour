@@ -19,23 +19,23 @@ class GuardTowers {
 public:
     struct TowerPos { float x, z; };
 
-    // 12 tower positions (2.5m outside outer fence at ±135/±95)
+    // 12 tower positions (2.5m outside outer fence at +/-162/±95)
     static constexpr int NUM_TOWERS = 12;
 
     // Corner towers: just outside corners of outer fence
     // Mid-perimeter: evenly distributed along fence lines
     TowerPos towers[NUM_TOWERS] = {
         // 4 corners
-        { 137.5f, -97.5f}, { 137.5f,  97.5f},
-        {-137.5f, -97.5f}, {-137.5f,  97.5f},
+        { 164.5f, -97.5f}, { 164.5f,  97.5f},
+        {-164.5f, -97.5f}, {-164.5f,  97.5f},
         // North fence mid-points (3 towers)
         { 45.0f, -97.5f}, {-45.0f, -97.5f}, { 0.0f, -97.5f},
         // South fence mid-points
         { 45.0f,  97.5f}, {-45.0f,  97.5f},
         // East (around gate) and West fence mid-points
-        { 137.5f,  15.0f}, {-137.5f,  0.0f},
+        { 164.5f,  15.0f}, {-164.5f,  0.0f},
         // Above gate on East
-        { 137.5f, -15.0f}
+        { 164.5f, -15.0f}
     };
 
     void render(Shader& shader, const glm::mat4& I,

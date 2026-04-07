@@ -26,7 +26,7 @@
 class EntranceGate {
 public:
     // Main gate position - moved east to create coherent camp layout
-    static constexpr float GATE_X = 155.0f;  // Was 135.0f
+    static constexpr float GATE_X = 161.0f;  // Was 155.0f
     static constexpr float GATE_Z = 0.0f;
     
     // Building dimensions
@@ -182,21 +182,21 @@ public:
         unbind(shader);
 
         // =============================================
-        // SENTRY BOXES (2m × 2m × 2.4m at Z = ±4, X = +140)
+        // SENTRY BOXES (2m × 2m × 2.4m at Z = ±4, X = GATE_X + 5)
         // =============================================
         bindTex(shader, texBrickDark, 3.0f);
         setMaterial(shader, COL_BRICK_DARK, 0.08f, 0.65f, 0.03f, 4.0f);
-        cube.draw(shader, I, 140.0f, 0.0f, gateZ + 3.0f, 2.0f, 2.4f, 2.0f, COL_BRICK_DARK, 4.0f);
-        cube.draw(shader, I, 140.0f, 0.0f, gateZ - 5.0f, 2.0f, 2.4f, 2.0f, COL_BRICK_DARK, 4.0f);
+        cube.draw(shader, I, gateX + 5.0f, 0.0f, gateZ + 3.0f, 2.0f, 2.4f, 2.0f, COL_BRICK_DARK, 4.0f);
+        cube.draw(shader, I, gateX + 5.0f, 0.0f, gateZ - 5.0f, 2.0f, 2.4f, 2.0f, COL_BRICK_DARK, 4.0f);
         unbind(shader);
 
         // =============================================
         // FLAGPOLES (2 steel poles, 8m tall, r = 0.15m)
-        // At X = +132, Z = ±6
+        // At X = GATE_X - 3, Z = ±6
         // =============================================
         setMaterial(shader, COL_METAL, 0.10f, 0.50f, 0.80f, 64.0f);
-        cyl.draw(shader, I, 132.0f, 0.0f, gateZ + 6.0f, 0.15f, 8.0f, 0.15f, COL_METAL, 64.0f);
-        cyl.draw(shader, I, 132.0f, 0.0f, gateZ - 6.0f, 0.15f, 8.0f, 0.15f, COL_METAL, 64.0f);
+        cyl.draw(shader, I, gateX - 3.0f, 0.0f, gateZ + 6.0f, 0.15f, 8.0f, 0.15f, COL_METAL, 64.0f);
+        cyl.draw(shader, I, gateX - 3.0f, 0.0f, gateZ - 6.0f, 0.15f, 8.0f, 0.15f, COL_METAL, 64.0f);
     }
 
     void cleanup() {

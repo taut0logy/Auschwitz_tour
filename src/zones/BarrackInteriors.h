@@ -33,7 +33,7 @@ public:
                 unsigned int texStrawBedding, unsigned int texBlackMetal,
                 unsigned int texTileGrey, unsigned int texRoofTile) const
     {
-        for (int blockNum = 1; blockNum <= 28; blockNum++) {
+        for (int blockNum = 1; blockNum <= 24; blockNum++) {
             glm::vec3 blockCentre = BarrackGrid::getBlockCentre(blockNum);
             float dist = glm::length(glm::vec3(camera.position.x, 0, camera.position.z) -
                                      glm::vec3(blockCentre.x, 0, blockCentre.z));
@@ -63,7 +63,7 @@ public:
     void renderBulbs(Shader& unlitShader, const glm::mat4& I,
                      Sphere& sphere, const Camera& camera) const
     {
-        for (int blockNum = 1; blockNum <= 28; blockNum++) {
+        for (int blockNum = 1; blockNum <= 24; blockNum++) {
             glm::vec3 blockCentre = BarrackGrid::getBlockCentre(blockNum);
             float dist = glm::length(camera.position - blockCentre);
             if (dist < INTERIOR_DRAW_DIST) {
