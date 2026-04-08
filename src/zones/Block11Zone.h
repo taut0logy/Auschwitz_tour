@@ -10,10 +10,6 @@
 
 // ================================================================
 // Block11Zone: Courtyard enclosure, Death Wall, Block 11 courtyard
-// Per Sections 2.8, 3.1 (special variants)
-// Block 11 = Row B, Col 1 (X=-72, Z=-28)
-// Block 10 = Row B, Col 2 (X=-24, Z=-28)
-// Courtyard between their facing ends
 // ================================================================
 class Block11Zone {
 public:
@@ -22,14 +18,6 @@ public:
                 unsigned int texBrickDark, unsigned int texWoodDark,
                 unsigned int texGravel) const
     {
-        // Block 11 centre: X=-72, Z=-28. Block extends X=[-92,-52]
-        // Block 10 centre: X=-24, Z=-28. Block extends X=[-44,-4]
-        // Courtyard is between the facing ends:
-        //   Block 11 east end: X = -52
-        //   Block 10 west end: X = -44
-        //   So courtyard X range: -52 to -44 (8m gap)
-        // However, spec says courtyard is 14x14m enclosed
-        // Courtyard walls at X = -68 to X = -28, Z = -34 to Z = -22
         float cwX1 = -55.0f, cwX2 = -41.0f; // courtyard X bounds (matching gap)
         float cwZ1 = -34.0f, cwZ2 = -22.0f; // courtyard Z bounds
         float wallH = 3.5f, wallT = 0.3f;

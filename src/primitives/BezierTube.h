@@ -8,14 +8,8 @@
 #include <cmath>
 #include "BezierCurve.h"
 
-// ================================================================
-// BezierTube: Extrude an N-sided polygon cross-section along a
-// cubic Bezier curve. Used for gate arch, lamp arm, etc.
-// ================================================================
 class BezierTube {
 public:
-    // Generate a tube mesh by extruding a circular cross-section along a Bezier curve.
-    // Returns vertex data: pos(3) + normal(3) + uv(2) = 8 floats per vertex.
     static void generate(
         const glm::vec3& P0, const glm::vec3& P1,
         const glm::vec3& P2, const glm::vec3& P3,

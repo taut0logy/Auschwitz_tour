@@ -15,7 +15,6 @@
 // SoldiersCourtyard:
 // - Central open parade courtyard
 // - Grid of stylized human soldiers built only from primitives
-// - Optional marching-in-place parade animation (keyboard toggle)
 // ================================================================
 class SoldiersCourtyard {
 public:

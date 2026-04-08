@@ -14,11 +14,8 @@
 #include "primitives/Sphere.h"
 
 // ================================================================
-// TrainSystem:
-// - Straight rail line outside the eastern entrance fence
-// - One locomotive + five bogeys
-// - Scripted motion: appear from horizon -> stop at gate -> depart
-// - Keyboard-controlled trigger + speed scaling
+// TrainSystem: Approaching steam train with headlight, track geometry, and
+// simple engine/bogey models. Motion state machine for approach, stop at gate, and departure.
 // ================================================================
 class TrainSystem {
 public:

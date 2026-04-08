@@ -13,7 +13,6 @@
 // ================================================================
 // FenceSystem: Dual perimeter fence (inner + outer), concrete posts,
 // 5-strand barbed wire with Bezier droop
-// Per Sections 2.4, 7.3
 // ================================================================
 class FenceSystem {
 public:

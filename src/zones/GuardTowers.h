@@ -12,8 +12,6 @@
 
 // ================================================================
 // GuardTowers: 12 guard towers — 9-component geometry per tower
-// Per Sections 2.4, 3.3
-// 4 corners + 8 mid-perimeter, outside the outer fence
 // ================================================================
 class GuardTowers {
 public:

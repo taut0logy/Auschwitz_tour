@@ -29,6 +29,11 @@ uniform sampler2D texture1;
 uniform bool      useTexture;
 uniform float     texRepeat;
 uniform float     objectAlpha;
+uniform bool      enableTextures;
+uniform bool      enableAmbient;
+uniform bool      enableDiffuse;
+uniform bool      enableSpecular;
+uniform bool      enableEmissive;
 
 void main()
 {
@@ -38,7 +43,7 @@ void main()
     vec3 matDiff = material.diffuse;
     float alpha = objectAlpha;
 
-    if (useTexture) {
+    if (useTexture && enableTextures) {
         vec2 tc = TexCoord * texRepeat;
         vec4 texColor = texture(texture1, tc);
         if (texColor.a < 0.1)
@@ -52,10 +57,19 @@ void main()
     // Simple directional light only for alpha objects
     vec3 L  = normalize(-dirLight.direction);
     float d = max(dot(N, L), 0.0);
-    vec3 result = globalAmbient * matAmb
-                + dirLight.ambient * matAmb
-                + dirLight.diffuse * d * matDiff;
+    float ambF = enableAmbient ? 1.0 : 0.0;
+    float difF = enableDiffuse ? 1.0 : 0.0;
+    float spcF = enableSpecular ? 1.0 : 0.0;
 
-    result += material.emissive;
+    vec3 result = ambF * globalAmbient * matAmb
+                + ambF * dirLight.ambient * matAmb
+                + difF * dirLight.diffuse * d * matDiff;
+
+    // Alpha pass has no explicit specular term in this simplified shader.
+    result += vec3(0.0f) * spcF;
+
+    if (enableEmissive) {
+        result += material.emissive;
+    }
     FragColor = vec4(result, alpha);
 }

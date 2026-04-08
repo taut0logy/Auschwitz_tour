@@ -11,26 +11,11 @@
 #include "primitives/Cylinder.h"
 #include "primitives/Plane.h"
 
-// ================================================================
-// BarrackGrid: 28 barrack blocks — full exterior geometry
-// Per Section 2.1 and 3.1 of the v2 specification
-//
-// Each block: 40m long (X) × 12m wide (Z) × 8m tall + 2.5m gabled roof
-// 4 rows × 7 columns
-//
-// REPOSITIONED: Shifted west to accommodate gate at X=+155
-// Updated to match prompt_v2 spec dimensions exactly
-// ================================================================
+
 class BarrackGrid {
 public:
-    // FIXED: Column X-centres with PROPER SPACING
-    // Block length = 40m, with 8m gap between blocks
-    // Spacing = 48m between column centers
-    // Col 0 at -112 spans -132 to -92
-    // Col 1 at -64 spans -84 to -44 (8m gap from col 0)
-    // Col 6 at +128 spans +108 to +148, gate at +155 leaves 7m clearance
+
     static constexpr float COL_X[6] = { -112.0f, -64.0f, -16.0f, +32.0f, +80.0f, +128.0f };
-    // Row Z-centres with proper spacing for 12m wide blocks + 24m gaps
     static constexpr float ROW_Z[4] = { -54.0f, -18.0f, +18.0f, +54.0f };
 
     // Updated to match prompt_v2 specification exactly
@@ -124,10 +109,6 @@ private:
         cube.draw(shader, I, bx - 0.2f, -0.4f, bz - 0.2f,
                   BLOCK_LEN + 0.4f, 0.4f, BLOCK_WID + 0.4f, COL_CONCRETE, 6.0f);
 
-        // =============================================
-        // 2. Main walls (with cutouts for windows and doors)
-        // 40 × 8 × 12, wall thickness = 0.2m
-        // =============================================
         bindTex(shader, wallTex, 80.0f);
         shader.setVec3("material.ambient", wallCol * (isDark ? 0.06f : 0.12f));
         shader.setVec3("material.diffuse", wallCol * (isDark ? 0.65f : 0.82f));
@@ -192,12 +173,7 @@ private:
             drawStrip(wx, 5.1f, innerZ, thick, BLOCK_HT - 5.1f, innerLen);
         }
 
-        // =============================================
-        // 3. Gabled Roof - CORRECTED: Two sloped panels + gable walls
-        // Roof runs along X (building length), slopes along Z (building width)
-        // Panels rotated around X-axis, starting from wall top
-        // =============================================
-        
+
         float ridgeY = BLOCK_HT + ROOF_RISE;
         float overhangX = 0.5f;   // Gable end overhang
         float overhangZ = 0.5f;   // Side overhang
@@ -257,11 +233,6 @@ private:
         }
         unbind(shader);
 
-        // =============================================
-        // 4. Windows (7 per storey per long face = 28 total)
-        // Each window hole is 1.0m wide × 1.2m tall.
-        // Wooden frames protrude 0.04m from both inside and outside of the 0.2m thick wall.
-        // =============================================
         bindTex(shader, texWoodDark, 2.0f);
         shader.setVec3("material.ambient", COL_WOOD_DARK * 0.15f);
         shader.setVec3("material.diffuse", COL_WOOD_DARK * 0.70f);
@@ -302,10 +273,6 @@ private:
                     }
                 }
 
-                // Sliding glass panes (animated)
-                // Glass windows slide horizontally in the plane of the wall (X direction)
-                // Slightly thinner than wall (0.15m) so surfaces don't overlap
-                // Positioned closer to exterior (south face: near bz, north face: near bz + BLOCK_WID)
                 float slideX = windowOpenAmt * 0.5f; // Max 0.5m slide horizontally
                 float winThick = 0.15f;
                 bindTex(shader, texGlassAlpha, 1.0f);
@@ -338,12 +305,6 @@ private:
         }
         unbind(shader);
 
-        // =============================================
-        // 5. Doors (1 per gable end, ground floor)
-        // 1.2m wide × 2.2m tall, centred on wall
-        // Animated: rotate around Y-axis based on doorOpenAmt
-        // Door placed at wall surface with thickness matching wall
-        // =============================================
         bindTex(shader, texWoodDark, 2.0f);
         float doorZ = bz + BLOCK_WID * 0.5f - doorW * 0.5f;
         float doorAngle = doorOpenAmt * 90.0f; // Max 90 degrees
@@ -368,11 +329,6 @@ private:
         cube.draw(shader, I, bx + BLOCK_LEN - thick - protrude - 0.02f, doorH, doorZ - 0.1f, frameD + 0.04f, 0.1f, doorW + 0.2f, COL_WOOD_DARK, 6.0f);
         unbind(shader);
 
-        // =============================================
-        // 6. Chimney stack (on roof ridge)
-        // 0.6 × 0.6 × 1.8m above ridge, brick_dark
-        // Located at X_local = 4m, Z_local = 6m (on ridge)
-        // =============================================
         bindTex(shader, texBrickDark, 3.0f);
         shader.setVec3("material.ambient", COL_BRICK_DARK * 0.10f);
         shader.setVec3("material.diffuse", COL_BRICK_DARK * 0.70f);

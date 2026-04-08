@@ -23,6 +23,12 @@ float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
 bool cursorLocked = true;
+bool fourPointView = false;
+bool lightingAmbientOn = true;
+bool lightingDiffuseOn = true;
+bool lightingSpecularOn = true;
+bool lightingEmissiveOn = true;
+bool texturesGlobalOn = true;
 
 // ---- Callbacks ----
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
@@ -117,6 +123,30 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
                   << (scene.isSoldierParadeEnabled() ? "ON" : "OFF")
                   << std::endl;
     }
+    if (key == GLFW_KEY_V) {
+        fourPointView = !fourPointView;
+        std::cout << "View mode: " << (fourPointView ? "4-point" : "normal") << std::endl;
+    }
+    if (key == GLFW_KEY_1) {
+        lightingAmbientOn = !lightingAmbientOn;
+        std::cout << "Ambient lighting: " << (lightingAmbientOn ? "ON" : "OFF") << std::endl;
+    }
+    if (key == GLFW_KEY_2) {
+        lightingDiffuseOn = !lightingDiffuseOn;
+        std::cout << "Diffuse lighting: " << (lightingDiffuseOn ? "ON" : "OFF") << std::endl;
+    }
+    if (key == GLFW_KEY_3) {
+        lightingSpecularOn = !lightingSpecularOn;
+        std::cout << "Specular lighting: " << (lightingSpecularOn ? "ON" : "OFF") << std::endl;
+    }
+    if (key == GLFW_KEY_4) {
+        lightingEmissiveOn = !lightingEmissiveOn;
+        std::cout << "Emissive lighting: " << (lightingEmissiveOn ? "ON" : "OFF") << std::endl;
+    }
+    if (key == GLFW_KEY_0) {
+        texturesGlobalOn = !texturesGlobalOn;
+        std::cout << "Textures (global): " << (texturesGlobalOn ? "ON" : "OFF") << std::endl;
+    }
 }
 
 void processInput(GLFWwindow* window) {
@@ -190,6 +220,12 @@ int main() {
     std::cout << "  J     - Trigger train pass\n";
     std::cout << "  U/I   - Train speed +/-\n";
     std::cout << "  P     - Toggle soldier parade\n";
+    std::cout << "  V     - Toggle normal / 4-point view\n";
+    std::cout << "  1     - Toggle ambient lighting\n";
+    std::cout << "  2     - Toggle diffuse lighting\n";
+    std::cout << "  3     - Toggle specular lighting\n";
+    std::cout << "  4     - Toggle emissive lighting\n";
+    std::cout << "  0     - Toggle all textures (global)\n";
     std::cout << "  ESC   - Quit\n";
 
     // ---- Main render loop ----
@@ -204,35 +240,90 @@ int main() {
         processInput(window);
         scene.update(deltaTime, camera);
 
-        // View / projection
-        glm::mat4 view = camera.getViewMatrix();
-        glm::mat4 projection = glm::perspective(
-            glm::radians(camera.fov),
-            (float)SCR_WIDTH / (float)SCR_HEIGHT,
-            0.1f, 800.0f);
+        auto renderPasses = [&](const Camera& renderCam,
+                                const glm::mat4& view,
+                                const glm::mat4& projection,
+                                bool renderHud,
+                                int hudW,
+                                int hudH)
+        {
+            auto setUniversalToggles = [&](Shader& s) {
+                s.use();
+                s.setBool("enableTextures", texturesGlobalOn);
+                s.setBool("enableAmbient", lightingAmbientOn);
+                s.setBool("enableDiffuse", lightingDiffuseOn);
+                s.setBool("enableSpecular", lightingSpecularOn);
+                s.setBool("enableEmissive", lightingEmissiveOn);
+            };
 
-        // ========== PASS 1: Clear + Skybox ==========
+            setUniversalToggles(phongShader);
+            setUniversalToggles(alphaShader);
+            setUniversalToggles(unlitShader);
+
+            scene.renderSkybox(skyboxShader, view, projection);
+            scene.renderStars(unlitShader, view, projection);
+            scene.renderOpaque(phongShader, renderCam, view, projection);
+            scene.renderCelestial(unlitShader, view, projection);
+            scene.renderAlpha(alphaShader, renderCam, view, projection);
+            scene.renderParticles(particleShader, renderCam, view, projection);
+            if (renderHud) scene.renderHUD(hudW, hudH);
+        };
+
         glClearColor(0.1f, 0.1f, 0.12f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        scene.renderSkybox(skyboxShader, view, projection);
 
-        // ========== PASS 2: Stars ==========
-        scene.renderStars(unlitShader, view, projection);
+        if (!fourPointView) {
+            glm::mat4 view = camera.getViewMatrix();
+            glm::mat4 projection = glm::perspective(
+                glm::radians(camera.fov),
+                (float)SCR_WIDTH / (float)SCR_HEIGHT,
+                0.1f, 800.0f);
 
-        // ========== PASS 3: Opaque ==========
-        scene.renderOpaque(phongShader, camera, view, projection);
+            glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            renderPasses(camera, view, projection, true, SCR_WIDTH, SCR_HEIGHT);
+        }
+        else {
+            const int halfW = SCR_WIDTH / 2;
+            const int halfH = SCR_HEIGHT / 2;
+            const float aspect = (float)halfW / (float)halfH;
 
-        // ========== PASS 4: Celestial bodies ==========
-        scene.renderCelestial(unlitShader, view, projection);
+            // Four technical views: X, Y, Z axis perspectives + isometric.
+            const glm::vec3 target(8.0f, 3.5f, 0.0f);
 
-        // ========== PASS 5: Alpha ==========
-        scene.renderAlpha(alphaShader, camera, view, projection);
+            struct QuadView {
+                int x, y;
+                glm::vec3 eye;
+                glm::vec3 up;
+                float fov;
+            };
 
-        // ========== PASS 6: Particles ==========
-        scene.renderParticles(particleShader, camera, view, projection);
+            QuadView views[4] = {
+                { 0,      halfH, glm::vec3(260.0f, 20.0f,   0.0f), glm::vec3(0.0f, 1.0f, 0.0f), 52.0f }, // X view
+                { halfW,  halfH, glm::vec3(  8.0f,180.0f,   0.0f), glm::vec3(0.0f, 0.0f,-1.0f), 48.0f }, // Y view
+                { 0,         0,  glm::vec3(  8.0f, 20.0f, 260.0f), glm::vec3(0.0f, 1.0f, 0.0f), 52.0f }, // Z view
+                { halfW,     0,  glm::vec3(220.0f,120.0f, 220.0f), glm::vec3(0.0f, 1.0f, 0.0f), 55.0f }  // Isometric
+            };
 
-        // ========== PASS 7: HUD ==========
-        scene.renderHUD(SCR_WIDTH, SCR_HEIGHT);
+            glEnable(GL_SCISSOR_TEST);
+            for (const auto& qv : views) {
+                glViewport(qv.x, qv.y, halfW, halfH);
+                glScissor(qv.x, qv.y, halfW, halfH);
+                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+                glm::mat4 view = glm::lookAt(qv.eye, target, qv.up);
+                glm::mat4 projection = glm::perspective(glm::radians(qv.fov), aspect, 0.1f, 800.0f);
+
+                Camera viewCam = camera;
+                viewCam.position = qv.eye;
+                viewCam.front = glm::normalize(target - qv.eye);
+                viewCam.right = glm::normalize(glm::cross(viewCam.front, qv.up));
+                viewCam.up = glm::normalize(glm::cross(viewCam.right, viewCam.front));
+
+                renderPasses(viewCam, view, projection, false, halfW, halfH);
+            }
+            glDisable(GL_SCISSOR_TEST);
+            glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+        }
 
         glfwSwapBuffers(window);
         glfwPollEvents();

@@ -14,7 +14,6 @@
 
 // ================================================================
 // LSystemTree: Fractal L-system trees (poplar style, 4 iterations)
-// Per Section 10.1
 // Rule: F[+F]F[-F]F
 // Angle: 25.7°, length shrink 0.6, branch radius shrink 0.65
 // ================================================================

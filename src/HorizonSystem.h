@@ -12,8 +12,7 @@
 #include "primitives/Cube.h"
 
 // ================================================================
-// HorizonSystem: 3-layer parallax + ground fog
-// Per Section 9
+// HorizonSystem: 3-layer parallax
 // Layer 1: Ground extension plane (200m beyond fence)
 // Layer 2: Mid-ground billboard treeline ring (50m outside fence)
 // Layer 3: Far horizon cylindrical billboard (r=280m)

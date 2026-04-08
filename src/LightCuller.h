@@ -9,7 +9,6 @@
 
 // ================================================================
 // LightCuller: Frustum-based light culling for street lamp spotlights
-// Per Section 4.2
 // Caps GPU lighting at 24 nearest lamps + 12 tower spots = 36 max
 // ================================================================
 class LightCuller {

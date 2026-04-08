@@ -16,9 +16,7 @@
 #include "primitives/Sphere.h"
 
 // ================================================================
-// StreetLamps: ~85 street lamp instances with Bezier curved arm,
-// truncated cone housing, emissive bulb sphere, spotlight
-// Per Sections 2.5, 3.4
+// StreetLamps
 // ================================================================
 
 struct LampInstance {

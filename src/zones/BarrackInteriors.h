@@ -13,13 +13,12 @@
 #include "primitives/Plane.h"
 #include "zones/BarrackGrid.h"
 
-// ================================================================
+
 // BarrackInteriors: 3 interior types, proximity-gated rendering
 // Type A: Sleeping quarters (most blocks)
 // Type B: Washroom/utility (Blocks 10, 22)
 // Type C: Block 11 punishment block
 // Per Sections 3.2, 11
-// ================================================================
 class BarrackInteriors {
 public:
     static constexpr float INTERIOR_DRAW_DIST = 25.0f;

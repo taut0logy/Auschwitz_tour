@@ -6,10 +6,6 @@
 #include <vector>
 #include "Shader.h"
 
-// ================================================================
-// Pyramid: Square base with 4 triangular faces (Egyptian style)
-// Used for decorative arch toppings on the entrance gate
-// ================================================================
 class Pyramid {
 public:
     GLuint vao = 0, vbo = 0, ebo = 0;

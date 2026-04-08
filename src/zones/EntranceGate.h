@@ -18,11 +18,7 @@
 
 // ================================================================
 // EntranceGate: Gatehouse building, Bezier arch, gate leaves,
-// text billboard, flagpoles, sentry boxes
-// Per Sections 2.3, 3.6, 7.1
-//
-// REPOSITIONED: Moved from X=135 to X=+155 to create proper spacing
-// from barracks grid (easternmost column at X=+112 with 40m blocks)
+// flagpoles, sentry boxes
 // ================================================================
 class EntranceGate {
 public:
@@ -56,12 +52,6 @@ public:
     {
         float gateX = GATE_X;
         float gateZ = GATE_Z;
-
-        // =============================================
-        // GATEHOUSE BUILDING
-        // 18m wide (Z) × 12m deep (X) × 5.5m tall
-        // Entry tunnel: 6m wide × 5.0m tall for truck access
-        // =============================================
 
         // Building SW corner
         float bldgX = gateX - 6.0f;  // 12m depth, centred at gateX
@@ -102,10 +92,6 @@ public:
         }
         unbind(shader);
 
-        // =============================================
-        // WING TOPS + PYRAMID CAPS (for flagpole mounts)
-        // Keep a low roof slab, then place one pyramid cap per wing.
-        // =============================================
         bindTex(shader, texRoofTile, 8.0f);
         setMaterial(shader, COL_ROOF_TILE, 0.13f, 0.72f, 0.06f, 8.0f);
         const float wingRoofBaseY = 5.5f;
@@ -134,10 +120,6 @@ public:
             wingPyramidBaseX, wingPyramidHeight, wingPyramidBaseZ, COL_BRICK_DARK, 8.0f);
         unbind(shader);
 
-        // =============================================
-        // GATE ARCH (Bezier) — sits at east face of gatehouse
-        // Wider arch for truck access (6m wide)
-        // =============================================
         bindTex(shader, texMetalIron, 2.0f);
         setMaterial(shader, COL_METAL, 0.08f, 0.45f, 0.95f, 96.0f);
 
@@ -180,10 +162,6 @@ public:
 
         unbind(shader);
 
-        // =============================================
-        // "ARBEIT MACHT FREI" text billboard
-        // Attached at Y = 3.0m on the arch
-        // =============================================
         if (texTextArbeit) {
             bindTex(shader, texTextArbeit, 1.0f);
             shader.setVec3("material.ambient", glm::vec3(0.3f));
@@ -225,19 +203,12 @@ public:
         }
         unbind(shader);
 
-        // =============================================
-        // SENTRY BOXES (2m × 2m × 2.4m at Z = ±4, X = GATE_X + 5)
-        // =============================================
         bindTex(shader, texBrickDark, 3.0f);
         setMaterial(shader, COL_BRICK_DARK, 0.08f, 0.65f, 0.03f, 4.0f);
         cube.draw(shader, I, gateX + 5.0f, 0.0f, gateZ + 3.0f, 2.0f, 2.4f, 2.0f, COL_BRICK_DARK, 4.0f);
         cube.draw(shader, I, gateX + 5.0f, 0.0f, gateZ - 5.0f, 2.0f, 2.4f, 2.0f, COL_BRICK_DARK, 4.0f);
         unbind(shader);
 
-        // =============================================
-        // FLAGPOLES mounted on top of pyramid caps.
-        // Raise bases so poles no longer intersect gatehouse geometry.
-        // =============================================
         setMaterial(shader, COL_METAL, 0.10f, 0.50f, 0.80f, 64.0f);
         const float poleRadius = 0.075f;
         const float poleHeight = 6.8f;

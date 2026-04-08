@@ -8,17 +8,8 @@
 #include <algorithm>
 #include "BezierCurve.h"
 
-// ================================================================
-// RuledSurface: Generate a mesh between two parallel Bezier curves
-// Used for crematorium roof (Section 7.5)
-// ================================================================
 class RuledSurface {
 public:
-    // Generate ruled surface between two cubic Bezier curves.
-    // Each curve is defined by 4 control points.
-    // uSegments = divisions along the curve parameter
-    // vSegments = divisions between the two curves (the ruling)
-    // Returns vertex data: pos(3) + normal(3) + uv(2)
     static void generate(
         const glm::vec3 curveA[4], const glm::vec3 curveB[4],
         int uSegments, int vSegments,

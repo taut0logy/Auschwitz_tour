@@ -16,6 +16,3 @@ Release/
 *.idb
 
 .DS_Store
-old/
-extern/
-prompt_v1.md

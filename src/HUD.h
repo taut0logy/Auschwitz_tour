@@ -13,7 +13,6 @@
 
 // ================================================================
 // HUD: Bitmap font overlay for time display and zone tracking
-// Per Section 12.4
 // Uses a procedurally generated 8x8 pixel font texture atlas
 // ================================================================
 class HUD {

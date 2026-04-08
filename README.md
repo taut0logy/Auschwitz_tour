@@ -1,95 +1,193 @@
 # Auschwitz I Educational 3D Reconstruction
 
-An interactive, high-fidelity 3D educational reconstruction of the Auschwitz I concentration camp. Developed using modern C++17 and custom OpenGL rendering, this engine emphasizes structural accuracy, performant flyweight-instanced batching, and procedural generation for environmental realism.
+Interactive OpenGL 3.3 educational reconstruction of Auschwitz I, implemented in modern C++17 with a modular zone architecture, multi-pass rendering, dynamic lighting, and procedural geometry systems.
 
-## 🏗 System Architecture
+## Project Overview
 
-The application is built on a highly modular Zone-based render pipeline. Each core zone or feature of the reconstruction is strictly isolated into discrete components.
+- Rendering API: OpenGL 3.3 Core
+- Language standard: C++17
+- Window/input: GLFW
+- GL loader: GLAD
+- Math: GLM
+- Image loading: STB Image
 
-### 🔌 Core Rendering Features
-- **Lighting & Illumination Engine**: Native multi-light architecture (Phong shading model) scaling up to 32 Point Lights, 36 Spot Lights, and Directional ambient sources (sun/moon) compiled directly within `phong.frag`.
-- **Flyweight Instancing**: Aggressive re-use of standard OpenGL primitive meshes (`Cube`, `Cylinder`, `Plane`, `Sphere`). Identical buildings draw off heavily localized transform matrices (VBO reuse), rendering a vast campus of 28 barracks effortlessly.
-- **Procedural Geometry**:
-  - **L-System Fractals**: Recursively constructed 3D boundary trees (`LSystemTree`), utilizing L-System expansions. 
-  - **Bezier Curves**: Curved metal arches (e.g. *ARBEIT MACHT FREI* gate signage) and sagging wire fences generated via calculated Cubic Bezier matrices (`BezierCurve.h`).
-  - **Ruled Surfaces**: Specialized procedural meshing for smooth transition models.
-- **Dynamic Environments**: 
-  - Real-time interpolated Day/Night Cycle simulating accurate twilight offsets.
-  - Procedural panoramic horizon mapping mapped across cylindrical geometries.
-  - Dynamically generated fallback textures (4x4 static noise generation) for error-proof loading stability.
+The simulation is driven by a central scene orchestrator that initializes all primitives, subsystems, zones, and lights, then renders the world in seven ordered passes each frame.
 
----
+## Current Architecture
 
-## 📂 File & Directory Structure
+### Core Engine Files
+
+- src/main.cpp
+  - Application entry point
+  - GLFW/GLAD setup
+  - Input callbacks and control mapping
+  - Main render loop
+- src/Scene.h
+  - Central orchestrator for initialization, update, and rendering
+  - Light setup/upload (directional, point, spot)
+  - Zone rendering dispatch and runtime texture management
+- src/Camera.h
+  - Free-fly camera movement and mouse look
+- src/Shader.h
+  - Shader compile/link/uniform helper
+- src/Texture.h
+  - Texture load helper with fallback paths
+- src/DayNightCycle.h
+  - Time-of-day progression and day/night lighting factors
+- src/HUD.h
+  - HUD rendering
+- src/HorizonSystem.h
+  - Horizon layer and fog rendering
+- src/LSystemTree.h
+  - Procedural trees (branches/leaves)
+- src/ParticleSystem.h
+  - Snow and smoke particles
+
+### Primitive Mesh Modules
+
+- src/primitives/Cube.h
+- src/primitives/Cylinder.h
+- src/primitives/Sphere.h
+- src/primitives/Plane.h
+- src/primitives/Pyramid.h
+- src/primitives/BezierTube.h
+- src/primitives/RuledSurface.h
+
+### Zone Modules
+
+- src/zones/GroundZone.h
+- src/zones/BarrackGrid.h
+- src/zones/BarrackInteriors.h
+- src/zones/EntranceGate.h
+- src/zones/FenceSystem.h
+- src/zones/GuardTowers.h
+- src/zones/StreetLamps.h
+- src/zones/Block11Zone.h
+- src/zones/CrematoryZone.h
+- src/zones/AdminZone.h
+- src/zones/TrainSystem.h
+  - Rail track outside entrance fence
+  - Animated locomotive plus five bogeys
+  - Gate stop and depart behavior
+  - Train headlight spotlight integration
+- src/zones/SoldiersCourtyard.h
+  - Central parade courtyard
+  - Grid formation of primitive human figures
+  - Animated marching-in-place toggle
+
+## Rendering Pipeline (7 Passes)
+
+Executed in this order every frame:
+
+1. Clear + Skybox
+2. Stars (unlit)
+3. Opaque geometry (Phong)
+4. Celestial bodies and emissive bulbs (unlit)
+5. Alpha/transparency
+6. Particles
+7. HUD overlay
+
+## Lighting Model
+
+Defined in shaders/phong.frag and populated from src/Scene.h.
+
+- Directional lights: 2 (sun and moon)
+- Point lights: up to 32
+- Spot lights: up to 36
+  - Includes guard towers, street lamps, and train headlight slot
+
+## World Layout Notes
+
+- Barrack grid currently renders 24 barracks (4 rows x 6 columns).
+- Entrance gate is on the eastern side of camp bounds.
+- Train line runs parallel to the entrance-side fence, outside the perimeter.
+- Central courtyard (Appellplatz/parade area) is centered in camp core and used by soldier formation.
+
+## Runtime Behavior
+
+- GL_CULL_FACE is disabled to allow interior visibility.
+- Delta time is clamped to 0.1s to avoid unstable jumps after frame stalls.
+- MSAA 4x is enabled through GLFW window hints.
+- Shaders and textures are loaded via relative paths from working directory:
+  - shaders/
+  - textures/
+
+## Controls
+
+### Movement and Camera
+
+- W / A / S / D: move
+- Left Shift: sprint
+- Space / Left Ctrl: move up / down
+- Mouse: look
+- Scroll: FOV zoom
+
+### System and UI
+
+- T: cycle time speed (pause / 1x / 8x / 30x)
+- H: toggle HUD
+- C: toggle cursor lock
+- F: toggle fullscreen
+- ESC: quit
+
+### Interactive Scene Controls
+
+- G: toggle doors
+- K: toggle windows
+- J: trigger train run
+- U / I: increase / decrease train speed
+- P: toggle soldier parade animation
+
+## Build and Run
+
+### Prerequisites
+
+- Windows
+- Visual Studio 2022 or newer with C++17 toolchain
+- OpenGL 3.3 capable GPU
+- extern/ directory available locally with:
+  - extern/lib/glfw3.lib
+  - GLAD headers/sources
+  - GLM headers
+  - STB image headers
+
+### Build Command (MSBuild)
+
+```powershell
+msbuild Auschwitz_tour.vcxproj /p:Configuration=Debug /p:Platform=x64
+```
+
+### Output
+
+- x64/Debug/Auschwitz_tour.exe
+
+## Workspace Structure (High-Level)
 
 ```text
 /
-├── .vscode/               # IDE configuration properties
-├── extern/                # External dependencies (GLAD, GLFW, GLM, STB_Image)
-├── shaders/
-│   ├── phong.vert         # Primary Vertex shader math
-│   ├── phong.frag         # Primary Fragment illumination
-│   ├── unlit.vert         # Emissive glowing body Vert
-│   ├── unlit.frag         # Emissive glowing body Frag
-│   ├── alpha.vert         # Transparency sorting Vert
-│   └── alpha.frag         # Transparency sorting Frag
-├── src/
-│   ├── main.cpp           # App entry, glad initiation, global states, rendering loop
-│   ├── Scene.h            # Central orchestrator. Manages initialization, lighting arrays, textures
-│   ├── Camera.h           # Free-flight 3D spectator camera matrix control
-│   ├── Texture.h          # STBI Wrapper 
-│   ├── Shader.h           # OpenGL Shader compilation/linking class
-│   ├── LSystemTree.h      # Recursive geometry generator for landscape trees
-│   ├── ParticleSystem.h   # Dynamic snow/dust emission and tracking
-│   ├── HorizonSystem.h    # Boundary panoramas and volumetric skybox abstraction
-│   ├── DayNightCycle.h    # Sun directional vector math via DeltaTime
-│   │
-│   ├── primitives/        # Geometry Primitive Engine definitions
-│   │   ├── Cube.h, Cylinder.h, Plane.h, Sphere.h, RuledSurface.h, BezierTube.h
-│   │
-│   └── zones/             # Modulized Sector Geography
-│       ├── EntranceGate.h   # Contains front wall, Gatehouse, ARBEIT Bezier sign
-│       ├── FenceSystem.h    # Barbed wire procedural sag networks and concrete posts
-│       ├── BarrackGrid.h    # The primary 28 prisoner housing blocks with roof layout
-│       ├── GuardTowers.h    # Placements for perimeter overwatch architecture
-│       ├── GroundZone.h     # Primary dirt mesh, Appellplatz roll-call square, gravel
-│       ├── StreetLamps.h    # Procedural light-posts emitting spot/point lights
-|       ├── BarrackInteriors.h
-|       ├── Block11Zone.h
-|       ├── CrematoryZone.h
-|       └── AdminZone.h
-└── textures/              # Diffuse and Alpha texture assets
+|- Auschwitz_tour.vcxproj
+|- Auschwitz_tour.slnx
+|- shaders/
+|- textures/
+|- src/
+|  |- main.cpp
+|  |- Scene.h
+|  |- Camera.h
+|  |- Shader.h
+|  |- Texture.h
+|  |- DayNightCycle.h
+|  |- HUD.h
+|  |- HorizonSystem.h
+|  |- LSystemTree.h
+|  |- ParticleSystem.h
+|  |- primitives/
+|  `- zones/
+`- extern/
 ```
 
-## 🛠 Compilation & Setup Instructions
+## Notes for Contributors
 
-### Environment Prerequisites
-- Windows OS (Visual Studio MSVC or MinGW)
-- **C++17** compiler or higher.
-- OpenGL 3.3 Core capability.
-
-### Visual Studio Integration
-The project directories are heavily structured for direct compilation via Visual Studio. 
-Ensure the `extern/` directory holds active implementations of:
-- **GLFW3** (`glfw3.lib`)
-- **GLAD**
-- **GLM** (headers only)
-- **STB_Image** (Image ingestion)
-
-**Include Directories:** Add `/extern`, `/extern/glad`, `/extern/glm`, and `/src`  
-**Library Directories:** Add paths bridging out to your local version of `glfw3.lib`. 
-**Linker Settings:** Target `opengl32.lib` and `glfw3.lib`.
-
-### Controls
-Once compiled and launched:
-- **W, A, S, D:** Free-flight navigation.
-- **Shift:** Hold to increase velocity (sprint).
-- **Q / E:** Decelerate / Escalate vertical `Y` height natively.
-- **Mouse Movement:** Panning camera system.
-- **Mouse Scroll:** Dynamic FOV.
-
-## 📝 Recent Implementation Changes
-- **Grid De-Coupling**: Reduced dense overlapping Barrack scale down to tightly tracked `32m` blocks, perfectly separating them by `6m` along symmetrical avenues.
-- **Interior Viewing**: Disabled `GL_CULL_FACE` explicitly to render interior wall spaces for user exploration through the entrance doors.
-- **Geometry Z-Fighting Fix**: Hand-calibrated the texture coordinates of dirt-roads, foundations, and glass windows (shifted outwards `0.04m`) to prevent OpenGL's co-planar tearing artifacts.
-- **Roof Pitch Correction**: Fixed matrix alignments where the sloped gable panels were improperly rotated, strictly bolting them into the 6-meter edge alignment.
+- Add new world sections as isolated zone headers under src/zones/.
+- Wire new zones through src/Scene.h init/update/render flow.
+- Add new zone headers to Auschwitz_tour.vcxproj and Auschwitz_tour.vcxproj.filters.
+- Avoid using legacy code under old/ for new implementations.

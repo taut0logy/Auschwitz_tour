@@ -152,7 +152,6 @@
     <ClInclude Include="src\BezierCurve.h" />
     <ClInclude Include="src\LSystemTree.h" />
     <ClInclude Include="src\ParticleSystem.h" />
-    <ClInclude Include="src\ShadowMap.h" />
     <ClInclude Include="src\LightCuller.h" />
     <ClInclude Include="src\HorizonSystem.h" />
     <ClInclude Include="src\HUD.h" />

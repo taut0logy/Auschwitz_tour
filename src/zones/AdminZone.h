@@ -7,11 +7,7 @@
 #include "Shader.h"
 #include "primitives/Cube.h"
 
-// ================================================================
-// AdminZone: 4 administrative buildings north of barracks grid
-// Per Section 2.7
-// Located roughly at X = +20 to +90, Z = -80 to -68
-// ================================================================
+
 class AdminZone {
 public:
     void render(Shader& shader, const glm::mat4& I,

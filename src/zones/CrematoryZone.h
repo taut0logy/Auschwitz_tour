@@ -16,8 +16,6 @@
 // ================================================================
 // CrematoryZone: Crematorium I building, chimney, ruled-surface roof,
 // furnace annex, gravel path, gallows
-// Per Sections 2.6, 3.5, 7.5
-// Located at X = -118, Z = -30
 // ================================================================
 class CrematoryZone {
 public:

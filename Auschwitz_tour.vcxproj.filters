@@ -74,9 +74,6 @@
     <ClInclude Include="src\lights\SpotLight.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\ShadowMap.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\LightCuller.h">
       <Filter>Header Files</Filter>
     </ClInclude>

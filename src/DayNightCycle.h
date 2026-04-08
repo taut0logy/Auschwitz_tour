@@ -7,11 +7,6 @@
 #include <algorithm>
 #include <string>
 
-// ================================================================
-// DayNightCycle: Time-of-day, sky interpolation, fog color,
-// sun/moon positions, star visibility, lamp activation fade
-// Per Sections 4.1, 14
-// ================================================================
 class DayNightCycle {
 public:
     float timeOfDay = 8.0f;  // 0.0–24.0
