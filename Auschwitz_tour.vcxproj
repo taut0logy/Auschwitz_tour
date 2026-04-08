@@ -180,17 +180,26 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="textures\bark.png" />
+    <Image Include="textures\black_metal.png" />
     <Image Include="textures\brick_dark.png" />
     <Image Include="textures\brick_red.png" />
+    <Image Include="textures\cobblestone.png" />
     <Image Include="textures\concrete.png" />
     <Image Include="textures\dirt_road.png" />
+    <Image Include="textures\glass_alpha.png" />
     <Image Include="textures\gravel.png" />
     <Image Include="textures\horizon_trees.png" />
     <Image Include="textures\leaf_alpha.png" />
+    <Image Include="textures\metal_grey.png" />
     <Image Include="textures\metal_iron.png" />
     <Image Include="textures\moon.png" />
+    <Image Include="textures\plaster_white_.png" />
     <Image Include="textures\roof_tile.png" />
+    <Image Include="textures\stone_floor.png" />
+    <Image Include="textures\straw_bedding.png" />
+    <Image Include="textures\tile_grey.png" />
     <Image Include="textures\wire_alpha.png" />
+    <Image Include="textures\wood_dark_.png" />
     <Image Include="textures\wood_plank.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

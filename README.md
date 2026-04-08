@@ -13,35 +13,50 @@ Interactive OpenGL 3.3 educational reconstruction of Auschwitz I, implemented in
 
 The simulation is driven by a central scene orchestrator that initializes all primitives, subsystems, zones, and lights, then renders the world in seven ordered passes each frame.
 
+## Why This Project Stands Out
+
+- 7-pass renderer: skybox, stars, opaque, celestial, alpha, particles, HUD.
+- Dynamic lighting system: 2 directional + up to 32 point + up to 36 spot lights.
+- Global runtime toggles: ambient, diffuse, specular, emissive, and all textures (0-4 keys).
+- Time-of-day system with sun/moon movement, night stars, and lamp transitions.
+- 4-point viewport mode: X view, Y view, Z view, and isometric (toggle with V).
+- Flyweight-based mesh reuse for procedural/curved assets (shared VAO/VBO/EBO drawn across instances).
+- Camera-proximity light culling path to keep active uploaded lights bounded.
+- Train module: external rail line, locomotive + 5 bogeys, gate stop-and-go cycle, front spotlight.
+- Soldier courtyard module: grid formation, articulated primitive soldiers, parade animation toggle.
+- Procedural geometry: L-system trees, Bezier-based meshes, and ruled surfaces.
+- Zone-based world layout: gate, fences, towers, barracks, interiors, block 11, crematory, admin.
+- Texture fallback path for missing assets to keep the scene renderable.
+
 ## Current Architecture
 
 ### Core Engine Files
 
 - src/main.cpp
-  - Application entry point
-  - GLFW/GLAD setup
-  - Input callbacks and control mapping
-  - Main render loop
+    - Application entry point
+    - GLFW/GLAD setup
+    - Input callbacks and control mapping
+    - Main render loop
 - src/Scene.h
-  - Central orchestrator for initialization, update, and rendering
-  - Light setup/upload (directional, point, spot)
-  - Zone rendering dispatch and runtime texture management
+    - Central orchestrator for initialization, update, and rendering
+    - Light setup/upload (directional, point, spot)
+    - Zone rendering dispatch and runtime texture management
 - src/Camera.h
-  - Free-fly camera movement and mouse look
+    - Free-fly camera movement and mouse look
 - src/Shader.h
-  - Shader compile/link/uniform helper
+    - Shader compile/link/uniform helper
 - src/Texture.h
-  - Texture load helper with fallback paths
+    - Texture load helper with fallback paths
 - src/DayNightCycle.h
-  - Time-of-day progression and day/night lighting factors
+    - Time-of-day progression and day/night lighting factors
 - src/HUD.h
-  - HUD rendering
+    - HUD rendering
 - src/HorizonSystem.h
-  - Horizon layer and fog rendering
+    - Horizon layer and fog rendering
 - src/LSystemTree.h
-  - Procedural trees (branches/leaves)
+    - Procedural trees (branches/leaves)
 - src/ParticleSystem.h
-  - Snow and smoke particles
+    - Snow and smoke particles
 
 ### Primitive Mesh Modules
 
@@ -66,14 +81,14 @@ The simulation is driven by a central scene orchestrator that initializes all pr
 - src/zones/CrematoryZone.h
 - src/zones/AdminZone.h
 - src/zones/TrainSystem.h
-  - Rail track outside entrance fence
-  - Animated locomotive plus five bogeys
-  - Gate stop and depart behavior
-  - Train headlight spotlight integration
+    - Rail track outside entrance fence
+    - Animated locomotive plus five bogeys
+    - Gate stop and depart behavior
+    - Train headlight spotlight integration
 - src/zones/SoldiersCourtyard.h
-  - Central parade courtyard
-  - Grid formation of primitive human figures
-  - Animated marching-in-place toggle
+    - Central parade courtyard
+    - Grid formation of primitive human figures
+    - Animated marching-in-place toggle
 
 ## Rendering Pipeline (7 Passes)
 
@@ -94,7 +109,7 @@ Defined in shaders/phong.frag and populated from src/Scene.h.
 - Directional lights: 2 (sun and moon)
 - Point lights: up to 32
 - Spot lights: up to 36
-  - Includes guard towers, street lamps, and train headlight slot
+    - Includes guard towers, street lamps, and train headlight slot
 
 ## World Layout Notes
 
@@ -105,12 +120,10 @@ Defined in shaders/phong.frag and populated from src/Scene.h.
 
 ## Runtime Behavior
 
-- GL_CULL_FACE is disabled to allow interior visibility.
-- Delta time is clamped to 0.1s to avoid unstable jumps after frame stalls.
 - MSAA 4x is enabled through GLFW window hints.
 - Shaders and textures are loaded via relative paths from working directory:
-  - shaders/
-  - textures/
+    - shaders/
+    - textures/
 
 ## Controls
 
@@ -128,6 +141,18 @@ Defined in shaders/phong.frag and populated from src/Scene.h.
 - H: toggle HUD
 - C: toggle cursor lock
 - F: toggle fullscreen
+- J: trigger train run
+- U: increase train speed
+- I: decrease train speed
+- P: toggle soldier parade animation
+- G: toggle doors
+- K: toggle windows
+- V: toggle normal / 4-point view
+- 1: toggle ambient lighting
+- 2: toggle diffuse lighting
+- 3: toggle specular lighting
+- 4: toggle emissive lighting
+- 0: toggle all textures globally
 - ESC: quit
 
 ### Interactive Scene Controls
@@ -146,10 +171,10 @@ Defined in shaders/phong.frag and populated from src/Scene.h.
 - Visual Studio 2022 or newer with C++17 toolchain
 - OpenGL 3.3 capable GPU
 - extern/ directory available locally with:
-  - extern/lib/glfw3.lib
-  - GLAD headers/sources
-  - GLM headers
-  - STB image headers
+    - extern/lib/glfw3.lib
+    - GLAD headers/sources
+    - GLM headers
+    - STB image headers
 
 ### Build Command (MSBuild)
 
@@ -184,6 +209,39 @@ msbuild Auschwitz_tour.vcxproj /p:Configuration=Debug /p:Platform=x64
 |  `- zones/
 `- extern/
 ```
+
+## Screenshots
+
+### Camp Views
+
+![Camp Day](_screenshots/camp_day.png)
+![Camp Night](_screenshots/camp_night.png)
+![Camp (Birds Eye View)](_screenshots/camp_isomeric.png)
+
+### 4-Point View Mode
+
+![4-Point View Day](_screenshots/sky_day.png)
+![4-Point View Night](_screenshots/sky_night.png)
+
+### Entrance and Courtyard
+
+![Main Gate](_screenshots/main_gate.png)
+![Army Parade Courtyard](_screenshots/army_parade.png)
+![Interior Army Formation](_screenshots/interior_army.png)
+
+### Train System
+
+![Train Approach](_screenshots/train.png)
+
+### Interiors
+
+![House Interior](_screenshots/interior_house.png)
+![Jail Interior](_screenshots/interior_jail.png)
+
+### Procedural Features
+
+![Fractal Tree](_screenshots/fractal_tree.png)
+![Fractal Snowflake](_screenshots/fractal_snowflake.png)
 
 ## Notes for Contributors
 

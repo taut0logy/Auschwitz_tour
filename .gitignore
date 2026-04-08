@@ -15,3 +15,12 @@ Release/
 *.lastbuildstate
 *.idb
 .DS_Store
+
+*.aux
+*.log
+*.lof
+*.out
+*.toc
+*.nav
+*.snm
+*.vrb
