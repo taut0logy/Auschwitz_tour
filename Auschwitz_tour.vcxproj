@@ -202,6 +202,20 @@
     <Image Include="textures\wood_dark_.png" />
     <Image Include="textures\wood_plank.png" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="shaders\alpha.frag" />
+    <None Include="shaders\alpha.vert" />
+    <None Include="shaders\hud.frag" />
+    <None Include="shaders\hud.vert" />
+    <None Include="shaders\particle.frag" />
+    <None Include="shaders\particle.vert" />
+    <None Include="shaders\phong.frag" />
+    <None Include="shaders\phong.vert" />
+    <None Include="shaders\skybox.frag" />
+    <None Include="shaders\skybox.vert" />
+    <None Include="shaders\unlit.frag" />
+    <None Include="shaders\unlit.vert" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

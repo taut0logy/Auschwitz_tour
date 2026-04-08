@@ -166,5 +166,70 @@
     <Image Include="textures\wood_plank.png">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="textures\black_metal.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="textures\cobblestone.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="textures\glass_alpha.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="textures\metal_grey.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="textures\plaster_white_.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="textures\stone_floor.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="textures\straw_bedding.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="textures\tile_grey.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="textures\wood_dark_.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shaders\alpha.frag">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="shaders\alpha.vert">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="shaders\hud.frag">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="shaders\hud.vert">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="shaders\particle.frag">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="shaders\particle.vert">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="shaders\phong.frag">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="shaders\phong.vert">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="shaders\skybox.frag">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="shaders\skybox.vert">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="shaders\unlit.frag">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="shaders\unlit.vert">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>
