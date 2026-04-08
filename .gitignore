@@ -14,5 +14,4 @@ Release/
 *.tlog
 *.lastbuildstate
 *.idb
-
 .DS_Store
