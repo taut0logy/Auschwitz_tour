@@ -2,6 +2,10 @@
 
 Interactive OpenGL 3.3 educational reconstruction of Auschwitz I, implemented in modern C++17 with a modular zone architecture, multi-pass rendering, dynamic lighting, and procedural geometry systems.
 
+## Demo
+
+[Project Demo Video](_screenshots/2007030_Video_Auschwitz_I_Educational_3D_Reconstruction.mp4)
+
 ## Project Overview
 
 - Rendering API: OpenGL 3.3 Core
